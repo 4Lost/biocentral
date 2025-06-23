@@ -2,13 +2,14 @@ import 'dart:math';
 
 import 'package:bio_flutter/bio_flutter.dart';
 import 'package:biocentral/sdk/biocentral_sdk.dart';
+import 'package:biocentral/sdk/data/biocentral_python_companion.dart';
 import 'package:flutter/foundation.dart';
 import 'package:ml_linalg/linalg.dart';
 
 class EmbeddingsColumnWizardFactory extends ColumnWizardFactory {
   @override
-  ColumnWizard create({required String columnName, required Map<String, dynamic> valueMap}) {
-    return EmbeddingsColumnWizard(columnName, valueMap.map((k, v) => MapEntry(k, v as EmbeddingManager)));
+  ColumnWizard create({required String columnName, required Map<String, dynamic> valueMap, required BiocentralPythonCompanion companion}) {
+    return EmbeddingsColumnWizard(columnName, valueMap.map((k, v) => MapEntry(k, v as EmbeddingManager)), companion);
   }
 
   @override
@@ -24,7 +25,7 @@ class EmbeddingsColumnWizard extends ColumnWizard {
   @override
   Type get type => EmbeddingManager;
 
-  EmbeddingsColumnWizard(super.columnName, this.valueMap);
+  EmbeddingsColumnWizard(super.columnName, this.valueMap, super.companion);
 
   Set<String>? _embedderNames;
 

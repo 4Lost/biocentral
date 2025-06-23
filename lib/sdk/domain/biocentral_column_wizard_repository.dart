@@ -1,13 +1,15 @@
+import 'package:biocentral/sdk/data/biocentral_python_companion.dart';
 import 'package:biocentral/sdk/model/column_wizard_abstract.dart';
 import 'package:biocentral/sdk/model/column_wizard_defaults.dart';
 import 'package:flutter/material.dart';
 
 class BiocentralColumnWizardRepository {
+  final BiocentralPythonCompanion companion;
   final Map<Type, ColumnWizardFactory> _factories = {};
   final Map<Type, Widget Function(ColumnWizard)?> _customColumnWizardDisplayFunctions = {};
   final List<TypeDetector> _detectors = [];
 
-  BiocentralColumnWizardRepository.withDefaultWizards() {
+  BiocentralColumnWizardRepository.withDefaultWizards(this.companion) {
     registerFactories(
         {IntColumnWizardFactory(): null, DoubleColumnWizardFactory(): null, StringColumnWizardFactory(): null});
   }
@@ -39,7 +41,7 @@ class BiocentralColumnWizardRepository {
   }) async {
     columnType ??= await _detectColumnType(valueMap.values);
     if (_factories.containsKey(columnType)) {
-      final columnWizard = _factories[columnType]!.create(columnName: columnName, valueMap: valueMap) as T;
+      final columnWizard = _factories[columnType]!.create(columnName: columnName, valueMap: valueMap, companion: companion) as T;
       return columnWizard;
     }
     // TODO Exception handling

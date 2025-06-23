@@ -20,11 +20,10 @@ app = Flask(__name__)
 app.logger.addHandler(handler)
 app.logger.setLevel(logging.INFO)
 
-@app.route('/test_normal', methods=['POST'])
-def test_normal():
-    result = functionality.test_normal(request.json)
+@app.route('/test_distributions', methods=['POST'])
+def test_normal_distribution():
+    result = functionality.test_distribution(request.json.get('data'), request.json.get('types'))
     return jsonify(result)
-
 
 @app.route('/read_h5', methods=['POST'])
 def read_h5():

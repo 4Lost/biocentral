@@ -1,3 +1,5 @@
+import 'package:biocentral/sdk/presentation/plots/biocentral_q_q_plot.dart';
+import 'package:biocentral/sdk/presentation/plots/biocentral_test_distribution_plot.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 
@@ -55,7 +57,7 @@ class _ColumnWizardGenericDisplayState extends State<ColumnWizardGenericDisplay>
             return Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                descriptiveStatisticsNumericStats(),
+                distributionNumericStats(),
                 SizedBox(
                   width: SizeConfig.safeBlockHorizontal(context) * 5,
                 ),
@@ -64,7 +66,7 @@ class _ColumnWizardGenericDisplayState extends State<ColumnWizardGenericDisplay>
                   return SizedBox(
                     width: SizeConfig.screenWidth(context) * 0.4,
                     height: SizeConfig.screenHeight(context) * 0.3,
-                    child: BiocentralHistogramKDEPlot(data: data),);
+                    child: BiocentralQQPlot(data: data),);
                 },),
                 //List.generate(1000, (_) => math.Random().nextDouble() * 100))),
               ],
@@ -87,6 +89,26 @@ class _ColumnWizardGenericDisplayState extends State<ColumnWizardGenericDisplay>
       textFuture('Median:', columnWizard.median()),
       textFuture('Mode:', columnWizard.mode()),
       textFuture('Standard deviation:', columnWizard.stdDev()),
+    ],);
+  }
+
+  Widget distributionNumericStats() {
+    final NumericStats columnWizard = widget.columnWizard as NumericStats;
+    return Column(mainAxisSize: MainAxisSize.min, children: [
+      const Text('Distribution Statistics:\n'),
+      textFuture('Normal:', columnWizard.testDistribution('normal')),
+      //textFuture('T:', columnWizard.testDistribution('t')),
+      //textFuture('Log-Norm:', columnWizard.testDistribution('log_norm')),
+      //textFuture('Chi2:', columnWizard.testDistribution('chi2')),
+      //textFuture('Gamma:', columnWizard.testDistribution('gamma')),
+      //textFuture('Beta:', columnWizard.testDistribution('beta')),
+      //textFuture('Weibull:', columnWizard.testDistribution('weibull')),
+      //textFuture('Exponential:', columnWizard.testDistribution('exponental')),
+      //textFuture('Uniform:', columnWizard.testDistribution('uniform')),
+      //textFuture('Bernoulli:', columnWizard.testDistribution('bernoulli')),
+      //textFuture('Binomial:', columnWizard.testDistribution('binomial')),
+      //textFuture('Geometric:', columnWizard.testDistribution('geometric')),
+      //textFuture('Poisson:', columnWizard.testDistribution('poisson')),
     ],);
   }
 
