@@ -53,7 +53,7 @@ abstract class _BiocentralPythonCompanionStrategy {
 
   Future<Either<BiocentralException, String>> writeH5File(Map<String, Embedding> embeddings);
 
-  Future<Either<BiocentralException, List<dynamic>>> testDistributions(List<double> data, String types);
+  Future<Either<BiocentralException, Map<String, dynamic>>> testDistributions(List<double> data, List<String> types);
   
   Future<void> startCompanion();
 
@@ -138,7 +138,7 @@ class _BiocentralPythonCompanionDesktopStrategy extends _BiocentralPythonCompani
   }
 
   @override
-  Future<Either<BiocentralException, List<dynamic>>> testDistributions(List<double> data, String types) async {
+  Future<Either<BiocentralException, Map<String, dynamic>>> testDistributions(List<double> data, List<String> types) async {
     final Map<String, String> body = {
       'data': jsonEncode(data),
       'types': jsonEncode(types)
@@ -147,11 +147,7 @@ class _BiocentralPythonCompanionDesktopStrategy extends _BiocentralPythonCompani
     return responseEither.match(
       (l) => left(l),
       (r) {
-      final List<String> list = ['dist_type', 'is_dist', 'p_value', 'statistic'];
-      final result = r.entries.map((entrie) {
-        return Map<String, dynamic>.fromIterables(list, entrie.value);
-      }).toList();
-      return right(result);
+      return right(r as Map<String, dynamic>);
     });
   }
 
@@ -196,7 +192,7 @@ class _BiocentralPythonCompanionDesktopStrategy extends _BiocentralPythonCompani
 
 class _BiocentralPythonCompanionWebStrategy extends _BiocentralPythonCompanionStrategy {
   @override
-  Future<Either<BiocentralException, List<dynamic>>> testDistributions(List<double> data, String types) async {
+  Future<Either<BiocentralException, Map<String, dynamic>>> testDistributions(List<double> data, List<String> types) async {
     final String? result = await runPythonCommand(
       environmentVariables: {
         'PYODIDE_COMMAND': 'test_distributions',
@@ -207,6 +203,7 @@ class _BiocentralPythonCompanionWebStrategy extends _BiocentralPythonCompanionSt
       return left(BiocentralPythonCompanionException(message: 'Could not load embeddings via python companion!'));
     }
     final decodedResult = jsonDecode(result);
+    // TODO Double check for web companion
     return right(decodedResult);
   }
 
@@ -337,7 +334,7 @@ class BiocentralPythonCompanion {
     return _strategy.writeH5File(embeddings);
   }
 
-  Future<Either<BiocentralException, List<dynamic>>> testDistributions(List<double> data, String types) {
+  Future<Either<BiocentralException, Map<String, dynamic>>> testDistributions(List<double> data, List<String> types) {
     return _strategy.testDistributions(data, types);
   }
 }

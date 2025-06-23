@@ -3,16 +3,15 @@ import numpy as np
 
 from scipy import stats
 
-def test_distributions(json_data, types):
-    distributions = types.split("|")
+def test_distributions(json_data, distributions):
     print(distributions)
     results = []
-    for type in distributions:
-        print(type)
-        results.append(dist_tester(json_data, type))
-    return results
+    for distribution in json.loads(distributions):
+        print(distribution)
+        results.append(dist_tester(json_data, distribution))
+    return {"results": results}
 
-def dist_tester(json_data, type):
+def dist_tester(json_data, distribution):
     data = json_data
 
     if not data:
@@ -26,12 +25,11 @@ def dist_tester(json_data, type):
     np_data = np.array(data, dtype=float)
 
     # Estimate degrees of freedom, mean and stdDev using MLE
-    match(type):
+    match(distribution):
         case 'normal':
             # Perform D’Agostino and Pearson’s Test
             statistic, p_value = stats.normaltest(np_data)
         case 't':
-            print('2')
             df_est, mean, stdDev = stats.t.fit(data)
             # Perform Kolmogorow-Smirnow test
             statistic, p_value = stats.kstest(np_data, 't', args=(df_est, mean, stdDev))
@@ -49,23 +47,22 @@ def dist_tester(json_data, type):
             statistic, p_value = stats.kstest(np_data, 'gamma', args=(shape, mean, stdDev))
         case 'beta':
             # Normalize data
-            data_min, data_max = min(data), max(data)
-            data_norm = (data - data_min) / (data_max - data_min)
+            data_norm = (np_data - np.min(data)) / (np.max(data) - np.min(data))
             # Fit Beta distribution
             a, b, mean, stdDev = stats.beta.fit(data_norm, floc=0, fscale=1)
             # Perform Kolmogorow-Smirnow test
             statistic, p_value = stats.kstest(np_data, 'beta', args=(a, b))
         case 'weibull':
-            shape, mean, stdDev = stats.weibull_min.fit(data)
+            shape, mean, stdDev = stats.weibull_min.fit(np_data)
             # Perform Kolmogorow-Smirnow test
             statistic, p_value = stats.kstest(np_data, 'weibull_min', args=(shape, mean, stdDev))
         case 'exponential':
-            stdDev = stats.expon.fit(data, floc=0)[1]
+            stdDev = stats.expon.fit(np_data, floc=0)[1]
             # Perform Kolmogorow-Smirnow test
             statistic, p_value = stats.kstest(np_data, 'expon', args=(0, stdDev))
         case 'uniform':
             # Normalize data to range [0, 1]
-            data_norm = (data - np.min(data)) / (np.max(data) - np.min(data))
+            data_norm = (np_data - np.min(data)) / (np.max(data) - np.min(data))
             statistic, p_value = stats.kstest(data_norm, 'uniform')
         case 'bernoulli':
             statistic = 0
@@ -125,10 +122,11 @@ def dist_tester(json_data, type):
             p_value = 1 - stats.chi2.cdf(statistic, df=dof)      
 
     # Interpret the result
+    # TODO p_value can be unassigned
     is_dist = p_value > 0.05  # Using 0.05 as the significance level
 
     result = {
-        "dist_type": str(type),
+        "dist_type": str(distribution),
         "is_dist": bool(is_dist),
         "p_value": float(p_value),  # Convert to float for JSON serialization
         "statistic": float(statistic)
