@@ -22,7 +22,7 @@ app.logger.setLevel(logging.INFO)
 
 @app.route('/test_distributions', methods=['POST'])
 def test_normal_distribution():
-    result = functionality.test_distribution(request.json.get('data'), request.json.get('types'))
+    result = functionality.test_distributions(request.json.get('data'), request.json.get('types'))
     return jsonify(result)
 
 @app.route('/read_h5', methods=['POST'])

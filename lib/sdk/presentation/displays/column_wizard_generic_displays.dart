@@ -1,13 +1,10 @@
-import 'package:biocentral/sdk/presentation/plots/biocentral_q_q_plot.dart';
-import 'package:biocentral/sdk/presentation/plots/biocentral_test_distribution_plot.dart';
-import 'package:collection/collection.dart';
-import 'package:flutter/material.dart';
-
 import 'package:biocentral/sdk/model/column_wizard_abstract.dart';
+import 'package:biocentral/sdk/presentation/plots/biocentral_bar_plot.dart';
+import 'package:biocentral/sdk/presentation/plots/biocentral_q_q_plot.dart';
 import 'package:biocentral/sdk/util/constants.dart';
 import 'package:biocentral/sdk/util/size_config.dart';
-import 'package:biocentral/sdk/presentation/plots/biocentral_bar_plot.dart';
-import 'package:biocentral/sdk/presentation/plots/biocentral_histogram_kde_plot.dart';
+import 'package:collection/collection.dart';
+import 'package:flutter/material.dart';
 
 class ColumnWizardGenericDisplay extends StatefulWidget {
   final ColumnWizard columnWizard;
@@ -24,8 +21,7 @@ class _ColumnWizardGenericDisplayState extends State<ColumnWizardGenericDisplay>
   @override
   void initState() {
     super.initState();
-      handleAsDiscrete = widget.columnWizard.handleAsDiscrete();
-
+    handleAsDiscrete = widget.columnWizard.handleAsDiscrete();
   }
 
   @override
@@ -58,58 +54,90 @@ class _ColumnWizardGenericDisplayState extends State<ColumnWizardGenericDisplay>
               mainAxisSize: MainAxisSize.min,
               children: [
                 distributionNumericStats(),
-                SizedBox(
-                  width: SizeConfig.safeBlockHorizontal(context) * 5,
-                ),
-                Builder(builder: (context) {
-                  final data = (widget.columnWizard as NumericStats).numericValues.toList();
-                  return SizedBox(
-                    width: SizeConfig.screenWidth(context) * 0.4,
-                    height: SizeConfig.screenHeight(context) * 0.3,
-                    child: BiocentralQQPlot(data: data),);
-                },),
-                //List.generate(1000, (_) => math.Random().nextDouble() * 100))),
               ],
             );
           }
         }
         return const CircularProgressIndicator();
-      },);
+      },
+    );
   }
 
   Widget descriptiveStatisticsNumericStats() {
     final NumericStats columnWizard = widget.columnWizard as NumericStats;
-    return Column(mainAxisSize: MainAxisSize.min, children: [
-      const Text('Descriptive Statistics:\n'),
-      textFuture('Number values:', columnWizard.length()),
-      textFuture('Number missing values:', columnWizard.numberMissing()),
-      textFuture('Max:', columnWizard.max()),
-      textFuture('Min:', columnWizard.min()),
-      textFuture('Mean:', columnWizard.mean()),
-      textFuture('Median:', columnWizard.median()),
-      textFuture('Mode:', columnWizard.mode()),
-      textFuture('Standard deviation:', columnWizard.stdDev()),
-    ],);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text('Descriptive Statistics:\n'),
+        textFuture('Number values:', columnWizard.length()),
+        textFuture('Number missing values:', columnWizard.numberMissing()),
+        textFuture('Max:', columnWizard.max()),
+        textFuture('Min:', columnWizard.min()),
+        textFuture('Mean:', columnWizard.mean()),
+        textFuture('Median:', columnWizard.median()),
+        textFuture('Mode:', columnWizard.mode()),
+        textFuture('Standard deviation:', columnWizard.stdDev()),
+      ],
+    );
   }
 
   Widget distributionNumericStats() {
     final NumericStats columnWizard = widget.columnWizard as NumericStats;
-    return Column(mainAxisSize: MainAxisSize.min, children: [
-      const Text('Distribution Statistics:\n'),
-      textFuture('Normal:', columnWizard.testDistribution('normal')),
-      //textFuture('T:', columnWizard.testDistribution('t')),
-      //textFuture('Log-Norm:', columnWizard.testDistribution('log_norm')),
-      //textFuture('Chi2:', columnWizard.testDistribution('chi2')),
-      //textFuture('Gamma:', columnWizard.testDistribution('gamma')),
-      //textFuture('Beta:', columnWizard.testDistribution('beta')),
-      //textFuture('Weibull:', columnWizard.testDistribution('weibull')),
-      //textFuture('Exponential:', columnWizard.testDistribution('exponental')),
-      //textFuture('Uniform:', columnWizard.testDistribution('uniform')),
-      //textFuture('Bernoulli:', columnWizard.testDistribution('bernoulli')),
-      //textFuture('Binomial:', columnWizard.testDistribution('binomial')),
-      //textFuture('Geometric:', columnWizard.testDistribution('geometric')),
-      //textFuture('Poisson:', columnWizard.testDistribution('poisson')),
-    ],);
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text('Distribution Statistics:\n'),
+        FutureBuilder(
+            future: columnWizard.getDistributions(),
+            builder: (context, snapshot) {
+              if (snapshot.hasData) {
+                final distributionResults = snapshot.data;
+                if (distributionResults == null) {
+                  return Text("ERROR"); // TODO Better error message
+                }
+                final resultTextWidgets = distributionResults
+                    .map((distributionMap) => Text(distributionMap['dist_type'] + ": " + distributionMap["p_value"].toString()))
+                    .toList();
+                return Row(
+                  children: [
+                    Column(
+                      children: resultTextWidgets,
+                    ),
+                    Column(children: [
+                      SizedBox(
+                        width: SizeConfig.safeBlockHorizontal(context) * 5,
+                      ),
+                      Builder(
+                        builder: (context) {
+                          final data = (widget.columnWizard as NumericStats).numericValues.toList();
+                          return SizedBox(
+                            width: SizeConfig.screenWidth(context) * 0.4,
+                            height: SizeConfig.screenHeight(context) * 0.3,
+                            child: BiocentralQQPlot(data: data),
+                          );
+                        },
+                      ),
+                    ]),
+                  ],
+                );
+              }
+              return const CircularProgressIndicator();
+            }),
+        // textFuture('Normal:', columnWizard.testDistribution('normal')),
+        //textFuture('T:', columnWizard.testDistribution('t')),
+        //textFuture('Log-Norm:', columnWizard.testDistribution('log_norm')),
+        //textFuture('Chi2:', columnWizard.testDistribution('chi2')),
+        //textFuture('Gamma:', columnWizard.testDistribution('gamma')),
+        //textFuture('Beta:', columnWizard.testDistribution('beta')),
+        //textFuture('Weibull:', columnWizard.testDistribution('weibull')),
+        //textFuture('Exponential:', columnWizard.testDistribution('exponental')),
+        //textFuture('Uniform:', columnWizard.testDistribution('uniform')),
+        //textFuture('Bernoulli:', columnWizard.testDistribution('bernoulli')),
+        //textFuture('Binomial:', columnWizard.testDistribution('binomial')),
+        //textFuture('Geometric:', columnWizard.testDistribution('geometric')),
+        //textFuture('Poisson:', columnWizard.testDistribution('poisson')),
+      ],
+    );
   }
 
   Widget descriptiveStatisticsCounterStats() {
@@ -120,20 +148,25 @@ class _ColumnWizardGenericDisplayState extends State<ColumnWizardGenericDisplay>
         final List<Widget> classCounts = [];
         if (snapshot.hasData && snapshot.data != null && snapshot.data!.isNotEmpty) {
           classCounts.add(const Text('Class counts:'));
-          classCounts.addAll(snapshot.data!
-              .entries
-              .sorted((e1, e2) => e1.value.compareTo(e2.value))
-              .reversed
-              .map((entry) => Text('${entry.key}: ${entry.value}')),);
+          classCounts.addAll(
+            snapshot.data!.entries
+                .sorted((e1, e2) => e1.value.compareTo(e2.value))
+                .reversed
+                .map((entry) => Text('${entry.key}: ${entry.value}')),
+          );
         }
-        return Column(mainAxisSize: MainAxisSize.min, children: [
-          const Text('Descriptive Statistics:\n'),
-          textFuture('Number values:', columnWizard.length()),
-          textFuture('Number different classes:', columnWizard.getCounts().then((counts) => counts.keys.length)),
-          textFuture('Number missing values:', columnWizard.numberMissing()),
-          ...classCounts,
-        ],);
-      },);
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Descriptive Statistics:\n'),
+            textFuture('Number values:', columnWizard.length()),
+            textFuture('Number different classes:', columnWizard.getCounts().then((counts) => counts.keys.length)),
+            textFuture('Number missing values:', columnWizard.numberMissing()),
+            ...classCounts,
+          ],
+        );
+      },
+    );
   }
 
   Widget textFuture(String text, Future<num> future) {
@@ -155,7 +188,8 @@ class _ColumnWizardGenericDisplayState extends State<ColumnWizardGenericDisplay>
           );
         }
         return Row(children: [Text('$text '), const CircularProgressIndicator()]);
-      },);
+      },
+    );
   }
 
   Widget barDistributionPlot() {
