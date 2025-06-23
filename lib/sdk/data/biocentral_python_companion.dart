@@ -7,13 +7,14 @@ import 'package:fpdart/fpdart.dart';
 import 'package:serious_python/serious_python.dart';
 
 abstract class _BiocentralPythonCompanionUtils {
-  static Future<Either<BiocentralIOException, Map<String, Embedding>>> _readEmbeddingsFromResponse(
+  static Future<Either<BiocentralPythonCompanionException, Map<String, Embedding>>> _readEmbeddingsFromResponse(
     Map<String, dynamic>? id2emb,
     String embedderName,
   ) async {
     if (id2emb == null) {
       return left(
-        BiocentralIOException(message: 'Parsing of embeddings failed - Could not convert result map from companion!'),
+        BiocentralPythonCompanionException(
+            message: 'Parsing of embeddings failed - Could not convert result map from companion!'),
       );
     }
 
@@ -22,7 +23,7 @@ abstract class _BiocentralPythonCompanionUtils {
       final conversion = _fromList(entry.value, embedderName);
       if (conversion == null) {
         return left(
-          BiocentralIOException(message: 'Parsing of embeddings failed - could not create embedding!'),
+          BiocentralPythonCompanionException(message: 'Parsing of embeddings failed - could not create embedding!'),
         );
       }
       result[entry.key] = conversion;
@@ -52,8 +53,8 @@ abstract class _BiocentralPythonCompanionStrategy {
 
   Future<Either<BiocentralException, String>> writeH5File(Map<String, Embedding> embeddings);
 
-  Future<Either<BiocentralException, Map<String, dynamic>>> testNormalDistribution(List<double> data);
-
+  Future<Either<BiocentralException, List<dynamic>>> testDistributions(List<double> data, String types);
+  
   Future<void> startCompanion();
 
   Future<bool> healthCheck();
@@ -109,12 +110,13 @@ class _BiocentralPythonCompanionDesktopStrategy extends _BiocentralPythonCompani
     return responseEither.match((l) async {
       return left(l);
     }, (r) async {
-      Future<Either<BiocentralIOException, Map<String, Embedding>>> readFunction(dynamic _) {
+      Future<Either<BiocentralPythonCompanionException, Map<String, Embedding>>> readFunction(dynamic _) {
         return _BiocentralPythonCompanionUtils._readEmbeddingsFromResponse(
           (r['id2emb'] ?? {}) as Map<String, dynamic>,
           embedderName,
         );
       }
+
       final embeddings = await compute(readFunction, null);
 
       return embeddings;
@@ -136,15 +138,20 @@ class _BiocentralPythonCompanionDesktopStrategy extends _BiocentralPythonCompani
   }
 
   @override
-  Future<Either<BiocentralException, Map<String, dynamic>>> testNormalDistribution(List<double> data) async {
+  Future<Either<BiocentralException, List<dynamic>>> testDistributions(List<double> data, String types) async {
     final Map<String, String> body = {
       'data': jsonEncode(data),
+      'types': jsonEncode(types)
     };
-    final responseEither = await doPostRequest('test_normal', body);
-    return responseEither.match((l) async {
-      return left(l);
-    }, (r) async {
-      return right(r.map((k, v) => MapEntry(k.toString(), v)));
+    final responseEither = await doPostRequest('test_distributions', body);
+    return responseEither.match(
+      (l) => left(l),
+      (r) {
+      final List<String> list = ['dist_type', 'is_dist', 'p_value', 'statistic'];
+      final result = r.entries.map((entrie) {
+        return Map<String, dynamic>.fromIterables(list, entrie.value);
+      }).toList();
+      return right(result);
     });
   }
 
@@ -189,15 +196,15 @@ class _BiocentralPythonCompanionDesktopStrategy extends _BiocentralPythonCompani
 
 class _BiocentralPythonCompanionWebStrategy extends _BiocentralPythonCompanionStrategy {
   @override
-  Future<Either<BiocentralException, Map<String, dynamic>>> testNormalDistribution(List<double> data) async {
+  Future<Either<BiocentralException, List<dynamic>>> testDistributions(List<double> data, String types) async {
     final String? result = await runPythonCommand(
       environmentVariables: {
-        'PYODIDE_COMMAND': 'test_normal',
-        'PYODIDE_DATA': jsonEncode({'data': data})
+        'PYODIDE_COMMAND': 'test_distributions',
+        'PYODIDE_DATA': jsonEncode({'data': data, 'types': types})
       },
     );
     if (result == null || result.isEmpty) {
-      return left(BiocentralServerException(message: 'Could not load embeddings via python companion!'));
+      return left(BiocentralPythonCompanionException(message: 'Could not load embeddings via python companion!'));
     }
     final decodedResult = jsonDecode(result);
     return right(decodedResult);
@@ -213,19 +220,21 @@ class _BiocentralPythonCompanionWebStrategy extends _BiocentralPythonCompanionSt
     );
     if (result == null || result.isEmpty) {
       return left(
-        BiocentralServerException(
+        BiocentralPythonCompanionException(
             message: 'Could not load embeddings for $embedderName'
-                ' via python companion!'),
+                ' via python companion!',
+                ),
       );
     }
     final decodedResult = jsonDecode(result);
 
-    Future<Either<BiocentralIOException, Map<String, Embedding>>> readFunction(dynamic _) {
+    Future<Either<BiocentralPythonCompanionException, Map<String, Embedding>>> readFunction(dynamic _) {
       return _BiocentralPythonCompanionUtils._readEmbeddingsFromResponse(
         (decodedResult['id2emb'] ?? {}) as Map<String, dynamic>,
         embedderName,
       );
     }
+
     final embeddings = await compute(readFunction, null);
 
     return embeddings;
@@ -241,7 +250,7 @@ class _BiocentralPythonCompanionWebStrategy extends _BiocentralPythonCompanionSt
       },
     );
     if (result == null || result.isEmpty) {
-      return left(BiocentralServerException(message: 'Could not load embeddings via python companion!'));
+      return left(BiocentralPythonCompanionException(message: 'Could not load embeddings via python companion!'));
     }
     final decodedResult = jsonDecode(result);
     return decodedResult;
@@ -262,17 +271,19 @@ class _BiocentralPythonCompanionWebStrategy extends _BiocentralPythonCompanionSt
 
   Future<String?> runPythonCommand({required Map<String, String>? environmentVariables}) async {
     Future<Either<BiocentralException, String?>> eitherWrapper() async {
-      return right(
-        await SeriousPython.run(
-          'assets/python_companion.zip',
-          appFileName: 'python_companion_web.py',
-          modulePaths: [
-            'python_companion/web',
-            'python_companion/functionality',
-          ],
-          environmentVariables: environmentVariables,
-        ),
+      final result = await SeriousPython.run(
+        'assets/python_companion.zip',
+        appFileName: 'python_companion_web.py',
+        modulePaths: [
+          'python_companion/web',
+          'python_companion/functionality',
+        ],
+        environmentVariables: environmentVariables,
       );
+      if (result == null) {
+        return left(BiocentralPythonCompanionException(message: 'Error running pyodide python companion'));
+      }
+      return right(result);
     }
 
     final eitherResult = await super._intercept<String?>(eitherWrapper);
@@ -326,7 +337,7 @@ class BiocentralPythonCompanion {
     return _strategy.writeH5File(embeddings);
   }
 
-  Future<Either<BiocentralException, Map<String, dynamic>>> testNormalDistribution(List<double> data) {
-    return _strategy.testNormalDistribution(data);
+  Future<Either<BiocentralException, List<dynamic>>> testDistributions(List<double> data, String types) {
+    return _strategy.testDistributions(data, types);
   }
 }

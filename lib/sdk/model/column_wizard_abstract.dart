@@ -1,14 +1,18 @@
 import 'dart:math';
 
+import 'package:biocentral/sdk/data/biocentral_python_companion.dart';
 import 'package:biocentral/sdk/presentation/plots/biocentral_bar_plot.dart';
+import 'package:biocentral/sdk/util/biocentral_exception.dart';
 import 'package:collection/collection.dart';
+import 'package:biocentral/sdk/util/logging.dart';
+import 'package:fpdart/fpdart.dart';
 import 'package:ml_linalg/vector.dart';
 
 import 'package:biocentral/sdk/util/constants.dart';
 import 'package:biocentral/sdk/model/column_wizard_operations.dart';
 
 abstract class ColumnWizardFactory<T extends ColumnWizard> {
-  T create({required String columnName, required Map<String, dynamic> valueMap});
+  T create({required String columnName, required Map<String, dynamic> valueMap, required BiocentralPythonCompanion companion});
 
   TypeDetector getTypeDetector();
 }
@@ -31,10 +35,11 @@ final class TypeDetector {
 
 abstract class ColumnWizard {
   final String columnName;
+  final BiocentralPythonCompanion companion;
 
   Map<String, dynamic> get valueMap;
 
-  ColumnWizard(this.columnName);
+  ColumnWizard(this.columnName, this.companion);
 
   Type get type => valueMap.values.firstOrNull.runtimeType;
 
@@ -216,6 +221,115 @@ mixin NumericStats on ColumnWizard {
       result[binIndex].add(value);
     }
     return result;
+  }
+
+  List<Map<String, dynamic>>? distResults;
+  bool testRunning = false;
+
+  Future<double> testDistributionTEST (String type) async {
+    testRunning = true;
+    final String typesAll = 'normal|t|lognorm|chi2|gamma|beta|weibull|exponental|uniform|bernoulli|binomial|geometric|poisson';
+    final String types = 'normal';
+    final Either<BiocentralException,List<dynamic>> response = await companion.testDistributions(numericValues.toList(), types);
+    response.match(
+      (exception) {
+        logger.e(exception);
+        print('error -----------------------------');
+      },
+      (data) {
+        print(data);
+        distResults = data.cast<Map<String, dynamic>>();
+      },
+    );
+    return distResults != null ? distResults![0]['p_value'] : 0.0;
+  }
+
+  Future<bool> getDistributions() async {
+    testRunning = true;
+    final String typesAll = 'normal|t|lognorm|chi2|gamma|beta|weibull|exponental|uniform|bernoulli|binomial|geometric|poisson';
+    final String types = 'normal';
+    final Either<BiocentralException,List<dynamic>> response = await companion.testDistributions(numericValues.toList(), types);
+    response.match(
+      (exception) {
+        logger.e(exception);
+        print('error -----------------------------');
+      },
+      (data) {
+        print(data);
+        distResults = data.cast<Map<String, dynamic>>();
+      },
+    );
+    testRunning = false;
+    return distResults == null ? false: true;
+  }
+
+  Future<double> testDistribution(String type) async {
+    print('test');
+    while (testRunning) {
+      await Future.delayed(const Duration(milliseconds: 250));
+    }
+    if (distResults == null) {
+      if (await getDistributions() == false) {
+        return -0.0;
+      }
+      
+    }
+    switch(type) {
+      case 'normal':
+        print(distResults);
+        return distResults != null ? distResults![0]['p_value'] : 0.0;
+      case 't':
+        return distResults != null ? distResults![1]['p_value'] : 0.0;
+      case 'lognorm':
+        return distResults != null ? distResults![2]['p_value'] : 0.0;
+      case 'chi2':
+        return distResults != null ? distResults![3]['p_value'] : 0.0;
+      case 'gamma':
+        return distResults != null ? distResults![4]['p_value'] : 0.0;
+      case 'beta':
+        return distResults != null ? distResults![5]['p_value'] : 0.0;
+      case 'weibull':
+        return distResults != null ? distResults![6]['p_value'] : 0.0;
+      case 'exponental':
+        return distResults != null ? distResults![7]['p_value'] : 0.0;
+      case 'uniform':
+        return distResults != null ? distResults![8]['p_value'] : 0.0;
+      case 'bernoulli':
+        return distResults != null ? distResults![9]['p_value'] : 0.0;
+      case 'binomial':
+        return distResults != null ? distResults![10]['p_value'] : 0.0;
+      case 'geometric':
+        return distResults != null ? distResults![11]['p_value'] : 0.0;
+      case 'poisson':
+        return distResults != null ? distResults![12]['p_value'] : 0.0;
+      default:
+        return 0.0;
+    }
+  }
+
+  Future<Map<String, dynamic>> getMostLikelyResult() async {
+    if (distResults == null) {
+      final String types = 'normal|t|lognorm|chi2|gamma|beta|weibull|exponental|uniform|bernoulli|binomial|geometric|poisson';
+      final Either<BiocentralException,List<dynamic>> response = await companion.testDistributions(numericValues.toList(), types);
+      response.match(
+        (exception) {
+          logger.e(exception);
+        },
+        (data) {
+          print(data);
+          distResults = data.cast<Map<String, dynamic>>();
+        },
+      );
+    }
+    int mostLikely = 0;
+    double pValue = 0.0;
+    for (int i = 0; i < 12; i++) {
+      if (distResults?[i]['p_value'] > pValue) {
+        mostLikely = i;
+        pValue = distResults != null ? distResults![i]['p_value'] : 0.0;
+      }
+    }
+    return distResults![mostLikely];
   }
 }
 

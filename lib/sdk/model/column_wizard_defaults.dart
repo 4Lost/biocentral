@@ -1,11 +1,12 @@
 
+import 'package:biocentral/sdk/data/biocentral_python_companion.dart';
 import 'package:ml_linalg/vector.dart';
 
 import 'package:biocentral/sdk/model/column_wizard_abstract.dart';
 import 'package:biocentral/sdk/model/column_wizard_operations.dart';
 
 abstract class NumColumnWizard extends ColumnWizard {
-  NumColumnWizard(super.columnName);
+  NumColumnWizard(super.columnName, super.companion);
 
   @override
   Set<ColumnOperationType> getAvailableOperations() {
@@ -15,11 +16,11 @@ abstract class NumColumnWizard extends ColumnWizard {
 
 class IntColumnWizardFactory extends ColumnWizardFactory {
   @override
-  ColumnWizard create({required String columnName, required Map<String, dynamic> valueMap}) {
+  ColumnWizard create({required String columnName, required Map<String, dynamic> valueMap, required BiocentralPythonCompanion companion}) {
     return IntColumnWizard(
         columnName,
         Map.fromEntries(valueMap.entries.map(
-            (entry) => MapEntry(entry.key, entry.value is int ? entry.value : int.parse(entry.value.toString())),),),);
+            (entry) => MapEntry(entry.key, entry.value is int ? entry.value : int.parse(entry.value.toString())),),), companion);
   }
 
   @override
@@ -32,19 +33,19 @@ class IntColumnWizard extends NumColumnWizard with NumericStats, CounterStats {
   @override
   final Map<String, int> valueMap;
 
-  IntColumnWizard(super.columnName, this.valueMap);
+IntColumnWizard(super.columnName, this.valueMap, super.companion);
 
-  @override
-  Vector get numericValues => Vector.fromList(valueMap.values.map((e) => e.toDouble()).toList());
+@override
+Vector get numericValues => Vector.fromList(valueMap.values.map((e) => e.toDouble()).toList());
 }
 
 class DoubleColumnWizardFactory extends ColumnWizardFactory {
-  @override
-  ColumnWizard create({required String columnName, required Map<String, dynamic> valueMap}) {
+@override
+ColumnWizard create({required String columnName, required Map<String, dynamic> valueMap, required BiocentralPythonCompanion companion}) {
     return DoubleColumnWizard(
         columnName,
         Map.fromEntries(valueMap.entries.map((entry) =>
-            MapEntry(entry.key, entry.value is double ? entry.value : double.parse(entry.value.toString())),),),);
+            MapEntry(entry.key, entry.value is double ? entry.value : double.parse(entry.value.toString())),),), companion);
   }
 
   @override
@@ -57,7 +58,7 @@ class DoubleColumnWizard extends NumColumnWizard with NumericStats, CounterStats
   @override
   final Map<String, double> valueMap;
 
-  DoubleColumnWizard(super.columnName, this.valueMap);
+  DoubleColumnWizard(super.columnName, this.valueMap, super.companion);
 
   @override
   Vector get numericValues => Vector.fromList(valueMap.values.toList());
@@ -65,9 +66,9 @@ class DoubleColumnWizard extends NumColumnWizard with NumericStats, CounterStats
 
 class StringColumnWizardFactory extends ColumnWizardFactory {
   @override
-  ColumnWizard create({required String columnName, required Map<String, dynamic> valueMap}) {
+  ColumnWizard create({required String columnName, required Map<String, dynamic> valueMap, required BiocentralPythonCompanion companion}) {
     return StringColumnWizard(
-        columnName, Map.fromEntries(valueMap.entries.map((entry) => MapEntry(entry.key, entry.value.toString()))),);
+        columnName, Map.fromEntries(valueMap.entries.map((entry) => MapEntry(entry.key, entry.value.toString()))), companion);
   }
 
   @override
@@ -81,7 +82,7 @@ class StringColumnWizard extends ColumnWizard with CounterStats {
   @override
   final Map<String, String> valueMap;
 
-  StringColumnWizard(super.columnName, this.valueMap);
+  StringColumnWizard(super.columnName, this.valueMap, super.companion);
 
   @override
   Set<ColumnOperationType> getAvailableOperations() {
