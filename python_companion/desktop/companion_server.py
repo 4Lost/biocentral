@@ -25,6 +25,7 @@ def test_normal_distribution():
     result = functionality.test_distributions(request.json.get('data'), request.json.get('types'))
     return jsonify(result)
 
+
 @app.route('/read_h5', methods=['POST'])
 def read_h5():
     result = functionality.read_h5(request.json)

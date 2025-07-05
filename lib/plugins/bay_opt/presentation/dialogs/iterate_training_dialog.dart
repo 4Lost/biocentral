@@ -1,4 +1,4 @@
-import 'package:biocentral/plugins/bayesian-optimization/model/bayesian_optimization_training_result.dart';
+import 'package:biocentral/plugins/bay_opt/model/bayesian_optimization_training_result.dart';
 import 'package:flutter/material.dart';
 import 'package:pluto_grid/pluto_grid.dart';
 
@@ -70,7 +70,7 @@ class _IterateTrainingDialogState extends State<IterateTrainingDialog> {
         return PlutoRow(
           cells: {
             'ranking': PlutoCell(value: index + 1),
-            'proteinId': PlutoCell(value: result.proteinId),
+            'proteinId': PlutoCell(value: result.id),
             'prediction': PlutoCell(value: result.mean),
             'inputList': PlutoCell(
               value: inputList[index],
@@ -83,9 +83,7 @@ class _IterateTrainingDialogState extends State<IterateTrainingDialog> {
 
   void handleCellValueChanged(PlutoGridOnChangedEvent event) {
     if (event.column.field == 'inputList') {
-      setState(() {
-        inputList[event.rowIdx] = event.value;
-      });
+      inputList[event.rowIdx] = double.tryParse(event.value); // TODO True/False values
     }
   }
 

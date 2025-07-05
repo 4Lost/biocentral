@@ -33,15 +33,15 @@ class IntColumnWizard extends NumColumnWizard with NumericStats, CounterStats {
   @override
   final Map<String, int> valueMap;
 
-IntColumnWizard(super.columnName, this.valueMap, super.companion);
+  IntColumnWizard(super.columnName, this.valueMap, super.companion);
 
-@override
-Vector get numericValues => Vector.fromList(valueMap.values.map((e) => e.toDouble()).toList());
+  @override
+  Vector get numericValues => Vector.fromList(valueMap.values.map((e) => e.toDouble()).toList());
 }
 
 class DoubleColumnWizardFactory extends ColumnWizardFactory {
-@override
-ColumnWizard create({required String columnName, required Map<String, dynamic> valueMap, required BiocentralPythonCompanion companion}) {
+  @override
+  ColumnWizard create({required String columnName, required Map<String, dynamic> valueMap, required BiocentralPythonCompanion companion}) {
     return DoubleColumnWizard(
         columnName,
         Map.fromEntries(valueMap.entries.map((entry) =>

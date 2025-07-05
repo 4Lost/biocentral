@@ -1,14 +1,13 @@
 import 'package:bio_flutter/bio_flutter.dart';
-import 'package:biocentral/plugins/bayesian-optimization/bloc/bayesian_optimization_commands.dart';
-import 'package:biocentral/plugins/bayesian-optimization/data/bayesian_optimization_client.dart';
-import 'package:biocentral/plugins/bayesian-optimization/domain/bayesian_optimization_repository.dart';
-import 'package:biocentral/plugins/bayesian-optimization/model/bayesian_optimization_model_types.dart';
-import 'package:biocentral/plugins/bayesian-optimization/model/bayesian_optimization_training_result.dart';
-import 'package:biocentral/plugins/bayesian-optimization/presentation/dialogs/bayesian_optimization_training_dialog_bloc.dart';
-import 'package:biocentral/plugins/bayesian-optimization/presentation/dialogs/start_bayesian_optimization_dialog.dart';
+import 'package:biocentral/plugins/bay_opt/bloc/bayesian_optimization_commands.dart';
+import 'package:biocentral/plugins/bay_opt/data/bayesian_optimization_client.dart';
+import 'package:biocentral/plugins/bay_opt/domain/bayesian_optimization_repository.dart';
+import 'package:biocentral/plugins/bay_opt/model/bayesian_optimization_model_types.dart';
+import 'package:biocentral/plugins/bay_opt/model/bayesian_optimization_training_result.dart';
+import 'package:biocentral/plugins/bay_opt/presentation/dialogs/bayesian_optimization_training_dialog_bloc.dart';
+import 'package:biocentral/plugins/bay_opt/presentation/dialogs/start_bayesian_optimization_dialog.dart';
 import 'package:biocentral/plugins/embeddings/data/predefined_embedders.dart';
 import 'package:biocentral/sdk/biocentral_sdk.dart';
-import 'package:bloc_effects/bloc_effects.dart';
 import 'package:event_bus/event_bus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -150,7 +149,7 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
   ) async {
     for (int i = 0; i < updateList.length; i++) {
       if (updateList[i] != null) {
-        final String proteinId = trainingResult.results![i].proteinId!;
+        final String proteinId = trainingResult.results![i].id!;
         final double? newvalue = updateList[i];
         if (newvalue != null) {
           final BioEntity? entity = proteinDatabase.getEntityById(proteinId);
@@ -269,13 +268,22 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
         await FilePicker.platform.pickFiles(allowedExtensions: ['json'], type: FileType.custom, withData: kIsWeb);
 
     if (result != null) {
-      _bayesianOptimizationRepository.addPickedPreviousTrainingResults(result.files.first.bytes);
-      emit(
-        state.newState(
-          const BiocentralCommandStateInformation(information: 'Previous Training Loaded'),
-          BiocentralCommandStatus.finished,
-        ),
-      );
+      final xFile = result.files.first.xFile;
+      final loadingEither = await _biocentralProjectRepository.handleLoad(xFile: xFile);
+      loadingEither.match((error) => emit(state.setErrored(information: 'Loading previous training failed!')),
+          (loadedFile) {
+        if (loadedFile == null) {
+          emit(state.setErrored(information: 'Loading previous training failed!'));
+        } else {
+          _bayesianOptimizationRepository.addPickedPreviousTrainingResults(loadedFile.content);
+          emit(
+            state.newState(
+              const BiocentralCommandStateInformation(information: 'Previous Training Loaded'),
+              BiocentralCommandStatus.finished,
+            ),
+          );
+        }
+      });
     } else {
       emit(state.setErrored(information: 'No file selected'));
     }
@@ -351,10 +359,7 @@ class BayesianOptimizationBloc extends BiocentralBloc<BayesianOptimizationEvent,
       await command
           .executeWithLogging<BayesianOptimizationState>(
         _biocentralProjectRepository,
-        const BayesianOptimizationState(
-          BiocentralCommandStateInformation(information: ''),
-          BiocentralCommandStatus.operating,
-        ),
+        state,
       )
           .forEach(
         (either) {
