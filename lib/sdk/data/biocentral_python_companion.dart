@@ -54,7 +54,7 @@ abstract class _BiocentralPythonCompanionStrategy {
   Future<Either<BiocentralException, String>> writeH5File(Map<String, Embedding> embeddings);
 
   Future<Either<BiocentralException, Map<String, dynamic>>> testDistributions(List<double> data, List<String> types);
-  
+
   Future<void> startCompanion();
 
   Future<bool> healthCheck();
@@ -195,7 +195,7 @@ class _BiocentralPythonCompanionWebStrategy extends _BiocentralPythonCompanionSt
   Future<Either<BiocentralException, Map<String, dynamic>>> testDistributions(List<double> data, List<String> types) async {
     final String? result = await runPythonCommand(
       environmentVariables: {
-        'PYODIDE_COMMAND': 'test_distributions',
+        'PYODIDE_COMMAND': 'test_distribution',
         'PYODIDE_DATA': jsonEncode({'data': data, 'types': types})
       },
     );
@@ -218,9 +218,9 @@ class _BiocentralPythonCompanionWebStrategy extends _BiocentralPythonCompanionSt
     if (result == null || result.isEmpty) {
       return left(
         BiocentralPythonCompanionException(
-            message: 'Could not load embeddings for $embedderName'
-                ' via python companion!',
-                ),
+          message: 'Could not load embeddings for $embedderName'
+              ' via python companion!',
+        ),
       );
     }
     final decodedResult = jsonDecode(result);

@@ -143,7 +143,7 @@ class _CIPainter extends CustomPainter {
     yLabelPainter.paint(canvas, const Offset(0, -padding / 4));
     canvas.restore();
   }
-  
+
   List<_Point> getQQPoints(List<double> data, Map<String, dynamic> dist) {
     final List<_Point> points = [];
     switch('normal') {

@@ -132,10 +132,10 @@ class _QQPainter extends CustomPainter {
     yLabelPainter.paint(canvas, const Offset(0, -padding / 4));
     canvas.restore();
   }
-  
+
   List<_Point> getQQPoints(List<double> data, double mean, double stdDev) {
     final List<_Point> points = [];
-    
+
     // Calculate empirical quantiles with Van der Waerden
     final List<double> quantiles = [];
     for (int index = 1; index <= data.length; index++) {

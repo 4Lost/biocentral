@@ -1,4 +1,4 @@
-import 'package:biocentral/plugins/bayesian-optimization/model/bayesian_optimization_training_result.dart';
+import 'package:biocentral/plugins/bay_opt/model/bayesian_optimization_training_result.dart';
 import 'package:flutter/material.dart';
 import 'package:pluto_grid/pluto_grid.dart';
 
@@ -128,7 +128,7 @@ class _BayesianOptimizationDatabaseGridViewState extends State<BayesianOptimizat
       return PlutoRow(
         cells: {
           'ranking': PlutoCell(value: ++index),
-          'proteinId': PlutoCell(value: data.proteinId),
+          'proteinId': PlutoCell(value: data.id),
           'score': PlutoCell(value: data.score),
           'sequence': PlutoCell(value: data.sequence),
           'uncertainty': PlutoCell(value: data.uncertainty),

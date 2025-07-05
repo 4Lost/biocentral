@@ -8,9 +8,8 @@ import 'package:biocentral/sdk/util/constants.dart';
 import 'package:biocentral/sdk/util/logging.dart';
 import 'package:collection/collection.dart';
 import 'package:fpdart/fpdart.dart';
-import 'package:ml_linalg/vector.dart';
 
-abstract class ColumnWizardFactory<T extends ColumnWizard> {
+import 'package:ml_linalg/vector.dart';abstract class ColumnWizardFactory<T extends ColumnWizard> {
   T create(
       {required String columnName,
       required Map<String, dynamic> valueMap,
@@ -267,7 +266,7 @@ mixin NumericStats on ColumnWizard {
 /*
   Future<Map<String, dynamic>> getMostLikelyResult() async {
     if (distResults == null) {
-      // TODO final String types = 'normal|t|lognorm|chi2|gamma|beta|weibull|exponental|uniform|bernoulli|binomial|geometric|poisson';
+    // TODO final String types = 'normal|t|lognorm|chi2|gamma|beta|weibull|exponental|uniform|bernoulli|binomial|geometric|poisson';
       final List<String> types = ['normal'];
       final Either<BiocentralException, Map<String, dynamic>> response = await companion.testDistributions(numericValues.toList(), types);
       response.match(
@@ -290,7 +289,7 @@ mixin NumericStats on ColumnWizard {
     }
     return distResults![mostLikely];
   }
-   */
+  */
 }
 
 mixin CounterStats on ColumnWizard {}
