@@ -2,20 +2,25 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-class BiocentralQQPlot extends StatelessWidget {
+class BiocentralQQPlot extends StatefulWidget {
   final List<double> data;
+  final bool? focus;
 
   const BiocentralQQPlot({
-    required this.data, super.key,
+    required this.data, super.key, this.focus,
   });
 
+  State<StatefulWidget> createState() => _BiocentralQQPlotState();
+}
+
+class _BiocentralQQPlotState extends State<BiocentralQQPlot> {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         return CustomPaint(
           size: Size(constraints.maxWidth, constraints.maxHeight),
-          painter: _QQPainter(data),
+          painter: _QQPainter(widget.data, widget.focus ?? true),
         );
       },
     );
@@ -24,16 +29,23 @@ class BiocentralQQPlot extends StatelessWidget {
 
 class _QQPainter extends CustomPainter {
   final List<double> data;
+  final bool focus;
   final TextStyle plotTextStyle = const TextStyle(color: Colors.black, fontSize: 14, fontWeight: FontWeight.bold);
 
-  _QQPainter(this.data);
+  _QQPainter(this.data, this.focus);
 
   @override
   void paint(Canvas canvas, Size size) {
-    const double padding = 60;
+    const double leftPadding = 60;
+    const double topPadding = 40;
+    const double rightPadding = 40;
+    const double bottomPadding = 60;
 
-    final Size plotSize = Size(size.width - padding, size.height - padding);
-    final Offset plotOffset = const Offset(padding, 0);
+    final Offset plotOffset = const Offset(leftPadding, topPadding);
+    final Size plotSize = Size(
+      size.width - leftPadding - rightPadding,
+      size.height - topPadding - bottomPadding,
+    );
 
     // Calculate metrics
     final double mean = data.reduce((a, b) => a + b) / data.length;
@@ -56,9 +68,9 @@ class _QQPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
 
     for (_Point point in qqPoints){
-      final double scaledX = (point.x - shownArea.dx)/(shownArea.dy - shownArea.dx)*(size.width - padding);
-      final double scaledY = (point.y - shownArea.dx)/(shownArea.dy - shownArea.dx)*(size.height - padding);
-      canvas.drawCircle(Offset(padding + scaledX, size.height - padding - scaledY), 0.1, qqPaint);
+      final double scaledX = (point.x - shownArea.dx)/(shownArea.dy - shownArea.dx)*plotSize.width;
+      final double scaledY = (point.y - shownArea.dx)/(shownArea.dy - shownArea.dx)*plotSize.height;
+      canvas.drawCircle(Offset(plotOffset.dx + scaledX, plotOffset.dy + plotSize.height - scaledY), 0.1, qqPaint);
     }
     // Draw diagonal
     final Paint diagonalPaint = Paint()
@@ -67,10 +79,7 @@ class _QQPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     // Draw normal line
-    canvas.drawLine(Offset(plotOffset.dx, size.height - padding), Offset(size.width, 0), diagonalPaint);
-
-    // Draw legend
-    drawLegend(canvas, size);
+    canvas.drawLine(Offset(plotOffset.dx, plotSize.height + plotOffset.dy), Offset(plotOffset.dx + plotSize.width, plotOffset.dy), diagonalPaint);
 
     // Draw axes
     final Paint axesPaint = Paint()
@@ -78,58 +87,65 @@ class _QQPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
 
-    canvas.drawLine(Offset(padding, plotSize.height), Offset(size.width, plotSize.height), axesPaint);
-    canvas.drawLine(const Offset(padding, 0), Offset(padding, plotSize.height), axesPaint);
+    canvas.drawLine(Offset(plotOffset.dx, plotOffset.dy + plotSize.height), Offset(plotOffset.dx + plotSize.width, plotOffset.dy + plotSize.height), axesPaint);
+    canvas.drawLine(Offset(plotOffset.dx, plotOffset.dy), Offset(plotOffset.dx, plotOffset.dy + plotSize.height), axesPaint);
 
     final double range = shownArea.dy - shownArea.dx;
 
-    // Draw x-axis annotations
-    final int xTickCount = 5;
-    for (int i = 0; i <= xTickCount; i++) {
-      final double value = shownArea.dx + (i / xTickCount) * range;
-      final double x = plotOffset.dx + (i / xTickCount) * plotSize.width;
-      canvas.drawLine(Offset(x, plotSize.height), Offset(x, plotSize.height + 5), axesPaint);
+    if (focus) {
+      // Draw legend
+      drawLegend(canvas, size);
 
-      final textPainter = TextPainter(
-        text: TextSpan(text: value.toStringAsFixed(1), style: plotTextStyle),
+      // Draw x-axis annotations
+      final int xTickCount = 5;
+      for (int i = 0; i <= xTickCount; i++) {
+        final double value = shownArea.dx + (i / xTickCount) * range;
+        final double x = plotOffset.dx + (i / xTickCount) * plotSize.width;
+        canvas.drawLine(Offset(x, plotOffset.dy + plotSize.height), Offset(x, plotOffset.dy + plotSize.height + 5), axesPaint);
+
+        final textPainter = TextPainter(
+          text: TextSpan(text: value.toStringAsFixed(1), style: plotTextStyle),
+          textDirection: TextDirection.ltr,
+        );
+        textPainter.layout();
+        textPainter.paint(canvas, Offset(x - textPainter.width / 2, plotOffset.dy + plotSize.height + 7));
+      }
+
+      // Draw y-axis annotations
+      final int yTickCount = 5;
+      for (int i = 0; i <= yTickCount; i++) {
+        final double value = shownArea.dy - (i / xTickCount) * range;
+        final double y = plotSize.height * (i / yTickCount);
+        canvas.drawLine(Offset(plotOffset.dx - 5, plotOffset.dy + y), Offset(plotOffset.dx, plotOffset.dy + y), axesPaint);
+
+        final textPainter = TextPainter(
+          text: TextSpan(text: value.toStringAsFixed(1), style: plotTextStyle),
+          textDirection: TextDirection.ltr,
+        );
+        textPainter.layout();
+        textPainter.paint(canvas, Offset(plotOffset.dx - 10 - textPainter.width, plotOffset.dy + y - textPainter.height / 2));
+      }
+
+      // Add labels
+      final xLabelPainter = TextPainter(
+        text: TextSpan(text: 'Value', style: plotTextStyle),
         textDirection: TextDirection.ltr,
       );
-      textPainter.layout();
-      textPainter.paint(canvas, Offset(x - textPainter.width / 2, plotSize.height + 7));
-    }
+      xLabelPainter.layout();
+      xLabelPainter.paint(canvas, Offset(size.width / 2, size.height - xLabelPainter.height - 20));
 
-    // Draw y-axis annotations
-    final int yTickCount = 5;
-    for (int i = 0; i <= yTickCount; i++) {
-      final double value = shownArea.dy - (i / xTickCount) * range;
-      final double y = plotSize.height * (i / yTickCount);
-      canvas.drawLine(Offset(padding - 5, y), Offset(padding, y), axesPaint);
-
-      final textPainter = TextPainter(
-        text: TextSpan(text: value.toStringAsFixed(1), style: plotTextStyle),
+      final yLabelPainter = TextPainter(
+        text: TextSpan(text: 'Frequency', style: plotTextStyle),
         textDirection: TextDirection.ltr,
       );
-      textPainter.layout();
-      textPainter.paint(canvas, Offset(padding - 10 - textPainter.width, y - textPainter.height / 2));
+      yLabelPainter.layout();
+      canvas.save();
+      canvas.translate(0, size.height / 2 + yLabelPainter.width / 2);
+      canvas.rotate(-math.pi / 2);
+      yLabelPainter.paint(canvas, Offset(0, plotOffset.dx / 4 - 10));
+    } else {
+      canvas.save();
     }
-
-    // Add labels
-    final xLabelPainter = TextPainter(
-      text: TextSpan(text: 'Normal theoretical quantiles', style: plotTextStyle),
-      textDirection: TextDirection.ltr,
-    );
-    xLabelPainter.layout();
-    xLabelPainter.paint(canvas, Offset(size.width / 2 - xLabelPainter.width / 2, size.height - xLabelPainter.height));
-
-    final yLabelPainter = TextPainter(
-      text: TextSpan(text: 'Empirical quantiles', style: plotTextStyle),
-      textDirection: TextDirection.ltr,
-    );
-    yLabelPainter.layout();
-    canvas.save();
-    canvas.translate(0, size.height / 2 + yLabelPainter.width / 2);
-    canvas.rotate(-math.pi / 2);
-    yLabelPainter.paint(canvas, const Offset(0, -padding / 4));
     canvas.restore();
   }
 
@@ -207,8 +223,8 @@ class _QQPainter extends CustomPainter {
   }
 
   void drawLegend(Canvas canvas, Size size) {
-    final double legendX = size.width - 100;
-    final double legendY = 100;
+    final double legendX = size.width - 250;
+    final double legendY = 130;
     final double itemHeight = 20;
 
     // KDE legend item

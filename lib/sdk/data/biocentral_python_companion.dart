@@ -195,7 +195,7 @@ class _BiocentralPythonCompanionWebStrategy extends _BiocentralPythonCompanionSt
   Future<Either<BiocentralException, Map<String, dynamic>>> testDistributions(List<double> data, List<String> types) async {
     final String? result = await runPythonCommand(
       environmentVariables: {
-        'PYODIDE_COMMAND': 'test_distribution',
+        'PYODIDE_COMMAND': 'test_distributions',
         'PYODIDE_DATA': jsonEncode({'data': data, 'types': types})
       },
     );

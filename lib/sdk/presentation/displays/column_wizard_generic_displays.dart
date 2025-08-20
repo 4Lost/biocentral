@@ -1,5 +1,6 @@
 import 'package:biocentral/sdk/model/column_wizard_abstract.dart';
 import 'package:biocentral/sdk/presentation/plots/biocentral_bar_plot.dart';
+import 'package:biocentral/sdk/presentation/plots/biocentral_histogram_kde_plot.dart';
 import 'package:biocentral/sdk/presentation/plots/biocentral_q_q_plot.dart';
 import 'package:biocentral/sdk/util/constants.dart';
 import 'package:biocentral/sdk/util/size_config.dart';
@@ -17,6 +18,8 @@ class ColumnWizardGenericDisplay extends StatefulWidget {
 
 class _ColumnWizardGenericDisplayState extends State<ColumnWizardGenericDisplay> {
   Future<bool> handleAsDiscrete = Future.value(false);
+  int _focusWindow = 0;
+  CarouselController carouselController = CarouselController();
 
   @override
   void initState() {
@@ -93,49 +96,79 @@ class _ColumnWizardGenericDisplayState extends State<ColumnWizardGenericDisplay>
               if (snapshot.hasData) {
                 final distributionResults = snapshot.data;
                 if (distributionResults == null) {
-                  return Text("ERROR"); // TODO Better error message
+                  return const Text('Loading of the distribution data failed.');
                 }
-                final resultTextWidgets = distributionResults
-                    .map((distributionMap) => Text(distributionMap['dist_type'] + ": " + distributionMap["p_value"].toString()))
-                    .toList();
-                return Row(
+                distributionResults.sort((a, b) {
+                  final aValue = a['p_value'] as double;
+                  final bValue = b['p_value'] as double;
+                  return aValue.compareTo(bValue);
+                });
+                final resultTextRows = distributionResults
+                    .map((distributionMap) => TableRow(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4.0),
+                          child: Text(distributionMap['dist_type'] + ':'),
+                        ),
+                        const SizedBox(width: 20),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 4.0),
+                          child: Text(
+                            '  ${distributionMap['p_value'] < 0.5 ? (0.0).toString() : distributionMap['p_value'].toString()}',
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                      ],
+                    ),).toList();
+                    final recommentionDist = SizedBox(
+                      width: SizeConfig.screenHeight(context) * 0.5,
+                      child: getMostLikly(distributionResults),
+                    );
+                return Column(
                   children: [
-                    Column(
-                      children: resultTextWidgets,
+                    Table(
+                      columnWidths: const {
+                        0: IntrinsicColumnWidth(),
+                        1: IntrinsicColumnWidth(),
+                      },
+                      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                      children: resultTextRows,
                     ),
-                    Column(children: [
-                      SizedBox(
-                        width: SizeConfig.safeBlockHorizontal(context) * 5,
-                      ),
-                      Builder(
-                        builder: (context) {
-                          final data = (widget.columnWizard as NumericStats).numericValues.toList();
-                          return SizedBox(
-                            width: SizeConfig.screenWidth(context) * 0.4,
-                            height: SizeConfig.screenHeight(context) * 0.3,
-                            child: BiocentralQQPlot(data: data),
-                          );
-                        },
-                      ),
-                    ]),
+                    const SizedBox(height: 20),
+                    recommentionDist,
                   ],
                 );
               }
-              return const CircularProgressIndicator();
-            }),
-        // textFuture('Normal:', columnWizard.testDistribution('normal')),
-        //textFuture('T:', columnWizard.testDistribution('t')),
-        //textFuture('Log-Norm:', columnWizard.testDistribution('log_norm')),
-        //textFuture('Chi2:', columnWizard.testDistribution('chi2')),
-        //textFuture('Gamma:', columnWizard.testDistribution('gamma')),
-        //textFuture('Beta:', columnWizard.testDistribution('beta')),
-        //textFuture('Weibull:', columnWizard.testDistribution('weibull')),
-        //textFuture('Exponential:', columnWizard.testDistribution('exponental')),
-        //textFuture('Uniform:', columnWizard.testDistribution('uniform')),
-        //textFuture('Bernoulli:', columnWizard.testDistribution('bernoulli')),
-        //textFuture('Binomial:', columnWizard.testDistribution('binomial')),
-        //textFuture('Geometric:', columnWizard.testDistribution('geometric')),
-        //textFuture('Poisson:', columnWizard.testDistribution('poisson')),
+              return const CircularProgressIndicator();        
+            },
+          ),
+          Column(children: [
+            SizedBox(
+              width: SizeConfig.safeBlockHorizontal(context) * 5,
+            ),
+            SizedBox(
+              width: SizeConfig.screenWidth(context) * 0.7,
+              height: SizeConfig.screenHeight(context) * 0.5,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 700),
+                child: CarouselView(
+                  controller: carouselController,
+                  itemSnapping: true,
+                  backgroundColor: Colors.transparent,
+                  onTap: (value) { setState(() {
+                    _focusWindow = value;
+                    carouselController.animateToItem(value);
+                  });},
+                  itemExtent: SizeConfig.screenWidth(context) * 0.5,
+                  children: [
+                    BiocentralHistogramKDEPlot(data: columnWizard.numericValues.toList(), focus: _focusWindow == 0 ? true : false),
+                    BiocentralQQPlot(data: columnWizard.numericValues.toList(), focus: _focusWindow == 1 ? true : false),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ), 
       ],
     );
   }
@@ -214,5 +247,13 @@ class _ColumnWizardGenericDisplayState extends State<ColumnWizardGenericDisplay>
         },
       ),
     );
+  }
+  Widget getMostLikly(List<Map<String, dynamic>> distributionResults) {
+    final Map<String, dynamic> maxDist = distributionResults.reduce((a, b) => a['p_value'] > b['p_value'] ? a : b);
+    final String recommandation = ' ?? -- ?? ';
+
+    return Text(maxDist['p_value'] as double > 0.5
+      ? 'The distribution seems to be ${maxDist['dist_type']} distributed.'
+      : 'The distribution does not fullfill the properties of any tested distribution. But it is the closest to a ${distributionResults.elementAt(0)['dist_type']} distributed. You can do ${recommandation} to transform to the distribution');
   }
 }
