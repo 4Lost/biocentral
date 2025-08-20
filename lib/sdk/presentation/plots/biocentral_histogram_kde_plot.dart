@@ -2,44 +2,58 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-class BiocentralHistogramKDEPlot extends StatelessWidget {
+class BiocentralHistogramKDEPlot extends StatefulWidget {
   final List<double> data;
+  final bool? focus;
   final int bins;
   final double bandwidth;
 
   const BiocentralHistogramKDEPlot({
     required this.data, super.key,
     this.bins = 20,
-    this.bandwidth = 1.0,
+    this.bandwidth = 1.0, this.focus,
   });
+  
+  @override
+  State<StatefulWidget> createState() => _BiocentralHistogramKDEPlotState(); 
+}
 
+class _BiocentralHistogramKDEPlotState extends State<BiocentralHistogramKDEPlot> {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
         return CustomPaint(
           size: Size(constraints.maxWidth, constraints.maxHeight),
-          painter: _HistogramKDEPainter(data, bins, bandwidth),
+          painter: _HistogramKDEPainter(widget.data, widget.focus ?? true, widget.bins, widget.bandwidth),
         );
       },
     );
   }
+  
 }
 
 class _HistogramKDEPainter extends CustomPainter {
   final List<double> data;
+  final bool focus;
   final int bins;
   final double bandwidth;
   final TextStyle plotTextStyle = const TextStyle(color: Colors.black, fontSize: 14, fontWeight: FontWeight.bold);
 
-  _HistogramKDEPainter(this.data, this.bins, this.bandwidth);
+  _HistogramKDEPainter(this.data, this.focus, this.bins, this.bandwidth);
 
   @override
   void paint(Canvas canvas, Size size) {
-    const double padding = 60;
+    const double leftPadding = 60;
+    const double topPadding = 40;
+    const double rightPadding = 40;
+    const double bottomPadding = 60;
 
-    final Size plotSize = Size(size.width - padding, size.height - padding);
-    final Offset plotOffset = const Offset(padding, 0);
+    final Offset plotOffset = const Offset(leftPadding, topPadding);
+    final Size plotSize = Size(
+      size.width - leftPadding - rightPadding,
+      size.height - topPadding - bottomPadding,
+    );
 
     // Calculate metrics
     final double minValue = data.reduce(math.min);
@@ -67,7 +81,7 @@ class _HistogramKDEPainter extends CustomPainter {
     final List<_Point> kdePoints = [];
     for (int i = 0; i <= 100; i++) {
       final double x = minValue + (i / 100) * range;
-      double y = 0;
+      double y = plotOffset.dy;
       for (final value in data) {
         y += math.exp(-math.pow(x - value, 2) / (2 * bandwidth * bandwidth));
       }
@@ -87,7 +101,7 @@ class _HistogramKDEPainter extends CustomPainter {
     for (int i = 0; i < bins; i++) {
       final double left = plotOffset.dx + i * plotSize.width / bins;
       final double top = normalizedHistogram[i] * plotSize.height;
-      final Rect rect = Rect.fromLTWH(left, plotSize.height - top, plotSize.width / bins, top);
+      final Rect rect = Rect.fromLTWH(left, plotSize.height - top + topPadding, plotSize.width / bins, top );
       canvas.drawRect(rect, histogramPaint);
     }
 
@@ -101,7 +115,7 @@ class _HistogramKDEPainter extends CustomPainter {
     for (int i = 0; i < normalizedKDE.length; i++) {
       final _Point point = normalizedKDE[i];
       final double x = plotOffset.dx + (point.x - minValue) / range * plotSize.width;
-      final double y = plotSize.height * (1 - point.y);
+      final double y = plotOffset.dy + plotSize.height * (1 - point.y);
       if (i == 0) {
         kdePath.moveTo(x, y);
       } else {
@@ -116,64 +130,68 @@ class _HistogramKDEPainter extends CustomPainter {
     // Highlight Mean and Standard Deviation
     highlightMeanAndStdDev(canvas, plotSize, plotOffset, minValue, maxValue, mean, stdDev);
 
-    // Draw legend
-    drawLegend(canvas, size);
-
     // Draw axes
     final Paint axesPaint = Paint()
       ..color = Colors.black
       ..style = PaintingStyle.stroke
       ..strokeWidth = 1;
 
-    canvas.drawLine(Offset(padding, plotSize.height), Offset(size.width, plotSize.height), axesPaint);
-    canvas.drawLine(const Offset(padding, 0), Offset(padding, plotSize.height), axesPaint);
+    canvas.drawLine(Offset(plotOffset.dx, plotOffset.dy + plotSize.height), Offset(plotOffset.dx + plotSize.width, plotOffset.dy + plotSize.height), axesPaint);
+    canvas.drawLine(Offset(plotOffset.dx, plotOffset.dy), Offset(plotOffset.dx, plotOffset.dy + plotSize.height), axesPaint);
 
-    // Draw x-axis annotations
-    final int xTickCount = 5;
-    for (int i = 0; i <= xTickCount; i++) {
-      final double value = minValue + (i / xTickCount) * range;
-      final double x = plotOffset.dx + (i / xTickCount) * plotSize.width;
-      canvas.drawLine(Offset(x, plotSize.height), Offset(x, plotSize.height + 5), axesPaint);
+    if (focus) {
+      // Draw legend
+      drawLegend(canvas, size);
 
-      final textPainter = TextPainter(
-        text: TextSpan(text: value.toStringAsFixed(1), style: plotTextStyle),
+      // Draw x-axis annotations
+      final int xTickCount = 5;
+      for (int i = 0; i <= xTickCount; i++) {
+        final double value = minValue + (i / xTickCount) * range;
+        final double x = plotOffset.dx + (i / xTickCount) * (plotSize.width - plotOffset.dy); //????
+        canvas.drawLine(Offset(x, plotSize.height + plotOffset.dy), Offset(x, plotSize.height + plotOffset.dy + 5), axesPaint);
+
+        final textPainter = TextPainter(
+          text: TextSpan(text: value.toStringAsFixed(1), style: plotTextStyle),
+          textDirection: TextDirection.ltr,
+        );
+        textPainter.layout();
+        textPainter.paint(canvas, Offset(x - textPainter.width / 2, plotSize.height + plotOffset.dy + 7));
+      }
+
+      // Draw y-axis annotations
+      final int yTickCount = 5;
+      for (int i = 0; i <= yTickCount; i++) {
+        final double y = plotSize.height * (1 - i / yTickCount);
+        canvas.drawLine(Offset(plotOffset.dx - 5, y + plotOffset.dy), Offset(plotOffset.dx, y + plotOffset.dy), axesPaint);
+
+        final textPainter = TextPainter(
+          text: TextSpan(text: (i / yTickCount).toStringAsFixed(1), style: plotTextStyle),
+          textDirection: TextDirection.ltr,
+        );
+        textPainter.layout();
+        textPainter.paint(canvas, Offset(plotOffset.dx - 10 - textPainter.width, y - textPainter.height / 2 + plotOffset.dy));
+      }
+
+      // Add labels
+      final xLabelPainter = TextPainter(
+        text: TextSpan(text: 'Value', style: plotTextStyle),
         textDirection: TextDirection.ltr,
       );
-      textPainter.layout();
-      textPainter.paint(canvas, Offset(x - textPainter.width / 2, plotSize.height + 7));
-    }
+      xLabelPainter.layout();
+      xLabelPainter.paint(canvas, Offset(size.width / 2, size.height - xLabelPainter.height - 20));
 
-    // Draw y-axis annotations
-    final int yTickCount = 5;
-    for (int i = 0; i <= yTickCount; i++) {
-      final double y = plotSize.height * (1 - i / yTickCount);
-      canvas.drawLine(Offset(padding - 5, y), Offset(padding, y), axesPaint);
-
-      final textPainter = TextPainter(
-        text: TextSpan(text: (i / yTickCount).toStringAsFixed(1), style: plotTextStyle),
+      final yLabelPainter = TextPainter(
+        text: TextSpan(text: 'Frequency', style: plotTextStyle),
         textDirection: TextDirection.ltr,
       );
-      textPainter.layout();
-      textPainter.paint(canvas, Offset(padding - 10 - textPainter.width, y - textPainter.height / 2));
+      yLabelPainter.layout();
+      canvas.save();
+      canvas.translate(0, size.height / 2 + yLabelPainter.width / 2);
+      canvas.rotate(-math.pi / 2);
+      yLabelPainter.paint(canvas, Offset(0, plotOffset.dx / 4 - 10));
+    } else {
+      canvas.save();
     }
-
-    // Add labels
-    final xLabelPainter = TextPainter(
-      text: TextSpan(text: 'Value', style: plotTextStyle),
-      textDirection: TextDirection.ltr,
-    );
-    xLabelPainter.layout();
-    xLabelPainter.paint(canvas, Offset(size.width / 2 - xLabelPainter.width / 2, size.height - xLabelPainter.height));
-
-    final yLabelPainter = TextPainter(
-      text: TextSpan(text: 'Frequency', style: plotTextStyle),
-      textDirection: TextDirection.ltr,
-    );
-    yLabelPainter.layout();
-    canvas.save();
-    canvas.translate(0, size.height / 2 + yLabelPainter.width / 2);
-    canvas.rotate(-math.pi / 2);
-    yLabelPainter.paint(canvas, const Offset(0, -padding / 4));
     canvas.restore();
   }
 
@@ -200,7 +218,7 @@ class _HistogramKDEPainter extends CustomPainter {
     final Path normalPath = Path();
     for (int i = 0; i < normalizedPoints.length; i++) {
       final _Point point = normalizedPoints[i];
-      final double x = plotOffset.dx + (point.x - minValue) / (maxValue - minValue) * plotSize.width;
+      final double x = plotOffset.dx + (point.x - minValue) / (maxValue - minValue) * (plotSize.width - plotOffset.dx);
       final double y = plotOffset.dy + plotSize.height * (1 - point.y);
       if (i == 0) {
         normalPath.moveTo(x, y);
@@ -218,7 +236,7 @@ class _HistogramKDEPainter extends CustomPainter {
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
 
-    final double meanX = plotOffset.dx + (mean - minValue) / (maxValue - minValue) * plotSize.width;
+    final double meanX = plotOffset.dx + (mean - minValue) / (maxValue - minValue) * (plotSize.width - plotOffset.dx);
 
     // Draw mean line
     canvas.drawLine(Offset(meanX, plotOffset.dy), Offset(meanX, plotOffset.dy + plotSize.height), meanPaint);
@@ -230,25 +248,27 @@ class _HistogramKDEPainter extends CustomPainter {
     canvas.drawLine(Offset(leftStdDevX, plotOffset.dy + plotSize.height),
         Offset(rightStdDevX, plotOffset.dy + plotSize.height), meanPaint,);
 
-    // Add labels
-    final TextPainter meanPainter = TextPainter(
-      text: TextSpan(text: 'Mean', style: plotTextStyle.copyWith(color: Colors.purple)),
-      textDirection: TextDirection.ltr,
-    );
-    meanPainter.layout();
-    meanPainter.paint(canvas, Offset(meanX - meanPainter.width / 2, plotOffset.dy - 15));
+    if (focus) {
+      // Add labels
+      final TextPainter meanPainter = TextPainter(
+        text: TextSpan(text: 'Mean', style: plotTextStyle.copyWith(color: Colors.purple)),
+        textDirection: TextDirection.ltr,
+      );
+      meanPainter.layout();
+      meanPainter.paint(canvas, Offset(meanX - meanPainter.width / 2, plotOffset.dy - 15));
 
-    final TextPainter stdDevPainter = TextPainter(
-      text: TextSpan(text: '±1 StdDev', style: plotTextStyle.copyWith(color: Colors.purple)),
-      textDirection: TextDirection.ltr,
-    );
-    stdDevPainter.layout();
-    stdDevPainter.paint(canvas,
-        Offset((leftStdDevX + rightStdDevX) / 2 - stdDevPainter.width / 2, plotOffset.dy + plotSize.height - 15),);
+      final TextPainter stdDevPainter = TextPainter(
+        text: TextSpan(text: '±1 StdDev', style: plotTextStyle.copyWith(color: Colors.purple)),
+        textDirection: TextDirection.ltr,
+      );
+      stdDevPainter.layout();
+      stdDevPainter.paint(canvas,
+          Offset((leftStdDevX + rightStdDevX) / 2 - stdDevPainter.width / 2, plotOffset.dy + plotSize.height - 15),);
+    }
   }
 
   void drawLegend(Canvas canvas, Size size) {
-    final double legendX = size.width - 100;
+    final double legendX = size.width - 250;
     final double legendY = 20;
     final double itemHeight = 20;
 

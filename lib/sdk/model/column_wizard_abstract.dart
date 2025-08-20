@@ -9,7 +9,9 @@ import 'package:biocentral/sdk/util/logging.dart';
 import 'package:collection/collection.dart';
 import 'package:fpdart/fpdart.dart';
 
-import 'package:ml_linalg/vector.dart';abstract class ColumnWizardFactory<T extends ColumnWizard> {
+import 'package:ml_linalg/vector.dart';
+
+abstract class ColumnWizardFactory<T extends ColumnWizard> {
   T create(
       {required String columnName,
       required Map<String, dynamic> valueMap,
@@ -227,7 +229,6 @@ mixin NumericStats on ColumnWizard {
   List<Map<String, dynamic>>? distResults;
 
   Future<List<Map<String, dynamic>>?> getDistributions() async {
-    final String typesAll = 'normal|';
     final List<String> types = [
       'normal',
       't',
@@ -262,34 +263,6 @@ mixin NumericStats on ColumnWizard {
     );
     return distResults;
   }
-
-/*
-  Future<Map<String, dynamic>> getMostLikelyResult() async {
-    if (distResults == null) {
-    // TODO final String types = 'normal|t|lognorm|chi2|gamma|beta|weibull|exponental|uniform|bernoulli|binomial|geometric|poisson';
-      final List<String> types = ['normal'];
-      final Either<BiocentralException, Map<String, dynamic>> response = await companion.testDistributions(numericValues.toList(), types);
-      response.match(
-        (exception) {
-          logger.e(exception);
-        },
-        (data) {
-          print(data);
-          distResults = data.cast<Map<String, dynamic>>();
-        },
-      );
-    }
-    int mostLikely = 0;
-    double pValue = 0.0;
-    for (int i = 0; i < 12; i++) {
-      if (distResults?[i]['p_value'] > pValue) {
-        mostLikely = i;
-        pValue = distResults != null ? distResults![i]['p_value'] : 0.0;
-      }
-    }
-    return distResults![mostLikely];
-  }
-  */
 }
 
 mixin CounterStats on ColumnWizard {}

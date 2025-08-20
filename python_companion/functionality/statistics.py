@@ -7,7 +7,6 @@ def test_distributions(json_data, distributions):
     print(distributions)
     results = []
     for distribution in distributions:
-        print(distribution)
         results.append(dist_tester(json_data, distribution))
     return {"results": results}
 
@@ -27,8 +26,7 @@ def dist_tester(json_data, distribution):
     # Estimate degrees of freedom, mean and stdDev using MLE
     match(distribution):
         case 'normal':
-            # Perform D’Agostino and Pearson’s Test
-            statistic, p_value = stats.normaltest(np_data)
+            statistic, p_value = stats.shapiro(data)
         case 't':
             df_est, mean, stdDev = stats.t.fit(np_data)
             # Perform Kolmogorow-Smirnow test
@@ -123,7 +121,7 @@ def dist_tester(json_data, distribution):
             p_value = 1 - stats.chi2.cdf(statistic, df=dof)  
 
     # Interpret the result
-    # TODO p_value can be unassigned
+    # TODO p_value can be unassignedt a
     is_dist = p_value > 0.05  # Using 0.05 as the significance level
 
     result = {
@@ -132,5 +130,4 @@ def dist_tester(json_data, distribution):
         "p_value": float(p_value),  # Convert to float for JSON serialization
         "statistic": float(statistic)
     }
-    print(f"Result: {result}", flush=True)
     return result
