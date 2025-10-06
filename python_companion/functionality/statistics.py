@@ -4,7 +4,6 @@ import numpy as np
 from scipy import stats
 
 def test_distributions(json_data, distributions):
-    print(distributions)
     results = []
     for distribution in distributions:
         results.append(dist_tester(json_data, distribution))
@@ -131,3 +130,34 @@ def dist_tester(json_data, distribution):
         "statistic": float(statistic)
     }
     return result
+
+LETTERS = [
+    'A', 'C', 'D', 'E', 'F', 'G', 'H', 'I',
+    'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S',
+    'T', 'V', 'W', 'Y', 'X', 'U',
+]
+
+def sequence_distribution(sequences):
+    print('gen_seq - 1')
+    dist = {l: 0.0 for l in LETTERS}
+
+    for seq in sequences:
+        for char in seq:
+            if char in dist:
+                dist[char] += 1.0
+    print('gen_seq - 2')
+    return dist
+
+
+def positional_sequence_distribution(sequences):
+    print('pos_seq - 1')
+    position_dist = {}
+
+    for seq in sequences:
+        for i, char in enumerate(seq):
+            if i not in position_dist:
+                position_dist[i] = {l: 0.0 for l in LETTERS}
+            if char in position_dist[i]:
+                position_dist[i][char] += 1.0
+    print('pos_seq - 2')
+    return position_dist

@@ -81,6 +81,7 @@ abstract class BiocentralDatabase<T extends BioEntity> with AutoSaving {
       for (MapEntry<String, dynamic> entry in entityMap.entries) {
         result.putIfAbsent(entry.key, () => {});
         result[entry.key]?[entityID] = entry.value;
+        print(entry.key);
       }
     }
     return result;

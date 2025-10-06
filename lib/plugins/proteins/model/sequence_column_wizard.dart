@@ -1,6 +1,7 @@
 import 'package:bio_flutter/bio_flutter.dart';
 import 'package:biocentral/sdk/biocentral_sdk.dart';
 import 'package:biocentral/sdk/data/biocentral_python_companion.dart';
+import 'package:fpdart/fpdart.dart';
 
 class SequenceColumnWizardFactory extends ColumnWizardFactory {
   @override
@@ -45,4 +46,47 @@ class SequenceColumnWizard extends ColumnWizard with CounterStats {
 
     return _composition!;
   }
+
+  Future<Map<String, double>> sequenceDistribution() async {
+    final Stopwatch stopwatch = Stopwatch()..start();
+    final Either<BiocentralException, Map<String, double>> response = await companion.sequenceDistribution(valueMap.values.map((sequence) => sequence.toString()).toList());
+    response.match(
+      (exception) {
+        logger.e(exception);
+        print('error -----------------------------');
+
+        stopwatch.stop();
+        print('time elapsed: ${stopwatch.elapsed}');
+      },
+      (data) {
+
+        stopwatch.stop();
+        print('time elapsed: ${stopwatch.elapsed}');
+        return data;
+      },
+    );
+    return {};
+  }
+
+  Future<Map<int, Map<String, int>>> positionalSequenceDistribution() async {
+    final Stopwatch stopwatch = Stopwatch()..start();
+    final Either<BiocentralException, Map<int, Map<String, int>>> response = await companion.positionalSequenceDistribution(valueMap.values.map((sequence) => sequence.toString()).toList());
+    response.match(
+      (exception) {
+        logger.e(exception);
+        print('error -----------------------------');
+
+        stopwatch.stop();
+        print('time elapsed: ${stopwatch.elapsed}');
+      },
+      (data) {
+
+        stopwatch.stop();
+        print('time elapsed: ${stopwatch.elapsed}');
+        return data;
+      },
+    );
+    return {};
+  }
+
 }

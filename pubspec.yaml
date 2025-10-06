@@ -80,5 +80,6 @@ flutter:
     - "assets/python_companion/web/"
     - "assets/python_companion/desktop/"
     - "assets/python_companion/functionality/"
+    - "assets/background_dist/distribution_AA.json"
     - "docs/"
 
