@@ -1,6 +1,8 @@
 import 'package:biocentral/plugins/proteins/model/sequence_column_wizard.dart';
+import 'package:biocentral/plugins/proteins/presentation/plots/biocentral_AA_kde_plot.dart';
+import 'package:biocentral/plugins/proteins/presentation/plots/biocentral_sequence_distribution_plot.dart';
+import 'package:biocentral/plugins/proteins/presentation/plots/biocentral_positional_sequence_distribution_plot.dart';
 import 'package:biocentral/sdk/biocentral_sdk.dart';
-import 'package:biocentral/sdk/presentation/plots/biocentral_bar_plot.dart';
 import 'package:flutter/material.dart';
 
 class SequenceColumnWizardDisplay extends StatefulWidget {
@@ -13,32 +15,156 @@ class SequenceColumnWizardDisplay extends StatefulWidget {
 }
 
 class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDisplay> {
+  bool lenDistCompare = false;
+  bool protDistCompare = false;
+  bool posProtDistCompare = false;
+  late Future<Map<String, double>> _sequenceDistributionFuture;
+  late Future<Map<int, Map<String, int>>> _sequencePosDistributionFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _sequenceDistributionFuture = widget.columnWizard.sequenceDistribution();
+    _sequencePosDistributionFuture = widget.columnWizard.positionalSequenceDistribution();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         buildSequenceStats(),
         SizedBox(
           width: SizeConfig.safeBlockHorizontal(context) * 5,
         ),
-        buildCompositionPlot(),
+        const Text('Length Distribution\n'),
+        SizedBox(
+          height: SizeConfig.safeBlockHorizontal(context) * 3,
+          width: SizeConfig.safeBlockHorizontal(context) * 8,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor, textStyle: Theme.of(context).textTheme.labelMedium,
+            ),
+            onPressed: () => setState(() {
+                lenDistCompare = !lenDistCompare;
+              }),
+            child: const Text('Toggle Comparison', style: TextStyle(color: Colors.white)),
+          ),
+        ),
+        buildLengthCompositionPlot(),
+        const Text('Protein Distribution\n'),
+        SizedBox(
+          height: SizeConfig.safeBlockHorizontal(context) * 3,
+          width: SizeConfig.safeBlockHorizontal(context) * 8,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor, textStyle: Theme.of(context).textTheme.labelMedium,
+            ),
+            onPressed: () => setState(() {
+                protDistCompare = !protDistCompare;
+              }),
+            child: const Text('Toggle Comparison', style: TextStyle(color: Colors.white)),
+          ),
+        ),
+        FutureBuilder<Widget>(
+          key: ValueKey('prot-$protDistCompare'),
+          future: buildCompositionPlot(),
+          builder: (context, snapshot) {
+            if(snapshot.hasData && snapshot.data != null) {
+              return snapshot.data!;
+            }
+            return const CircularProgressIndicator();
+          },
+        ),
+        const Text('Positional Protein Distribution\n'),
+        SizedBox(
+          height: SizeConfig.safeBlockHorizontal(context) * 3,
+          width: SizeConfig.safeBlockHorizontal(context) * 8,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).primaryColor, textStyle: Theme.of(context).textTheme.labelMedium,
+            ),
+            onPressed: () => setState(() {
+                posProtDistCompare = !posProtDistCompare;
+              }),
+            child: const Text('Toggle Comparison', style: TextStyle(color: Colors.white)),
+          ),
+        ),
+        FutureBuilder<Widget>(
+          key: ValueKey('pos-$protDistCompare'),
+          future: buildPositionalCompositionPlot(),
+          builder: (context, snapshot) {
+            if(snapshot.hasData && snapshot.data != null) {
+              return snapshot.data!;
+            }
+            return const CircularProgressIndicator();
+          },
+        ),
       ],
     );
   }
 
   Widget buildSequenceStats() {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Text('Descriptive Statistics:\n'),
-        textFuture('Number values:', widget.columnWizard.length()),
-        textFuture(
-            'Sequence Type:', Future.value(widget.columnWizard.valueMap.values.firstOrNull?.runtimeType ?? 'Unknown')),
-        textFuture('Number missing values:', widget.columnWizard.numberMissing()),
-      ],
-    );
-  }
+  return Column(
+    mainAxisAlignment: MainAxisAlignment.center,
+    crossAxisAlignment: CrossAxisAlignment.center, // center horizontally
+    children: [
+      const Text('Descriptive Statistics\n'),
+      Center(
+        child: Table(
+          columnWidths: const {
+            0: IntrinsicColumnWidth(),
+            1: FlexColumnWidth(),
+          },
+          defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+          children: [
+            TableRow(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 4.0),
+                  child: Text('Number values:', textAlign: TextAlign.left),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  child: textFuture(' ', widget.columnWizard.length()),
+                ),
+              ],
+            ),
+            TableRow(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 4.0),
+                  child: Text('Sequence Type:', textAlign: TextAlign.left),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  child: textFuture(
+                    ' ',
+                    Future.value(
+                      widget.columnWizard.valueMap.values.firstOrNull?.runtimeType ?? 'Unknown',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            TableRow(
+              children: [
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 4.0),
+                  child: Text('Number missing values:', textAlign: TextAlign.left),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4.0),
+                  child: textFuture(' ', widget.columnWizard.numberMissing()),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    ],
+  );
+}
 
   // TODO Merge with other column wizard function
   Widget textFuture(String text, Future future) {
@@ -63,23 +189,36 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
     );
   }
 
-  Widget buildCompositionPlot() {
+  Widget buildLengthCompositionPlot() {
     return FutureBuilder<Map<String, double>>(
-      future: widget.columnWizard.composition(),
+      key: ValueKey('len-$lenDistCompare'),
+      future: _sequenceDistributionFuture,
       builder: (context, snapshot) {
         if(snapshot.hasData && snapshot.data != null) {
           return SizedBox(
-            width: SizeConfig.screenWidth(context) * 0.4,
-            height: SizeConfig.screenHeight(context) * 0.3,
-            child: BiocentralBarPlot(
-              data: BiocentralBarPlotData.withoutErrors(snapshot.data!),
-              xAxisLabel: 'Composition',
-              yAxisLabel: 'Relative Frequency',
-            ),
+            width: 2000,
+            height: 500,
+            child: BiocentralAAKDEPlot(focus: lenDistCompare,),
           );
         }
         return const CircularProgressIndicator();
       },
+    );
+  }
+
+  Future<Widget> buildCompositionPlot() async {
+    return SizedBox(
+      width: 2000,
+      height: 500,
+      child: BiocentralSequenceDistributionPlot(distribution: await widget.columnWizard.sequenceDistribution(), showBackground: protDistCompare,),
+    );
+  }
+
+  Future<Widget> buildPositionalCompositionPlot() async {
+    return SizedBox(
+      width: 2000,
+      height: 500,
+      child: BiocentralPositionalSequenceDistributionPlot(positionalDist: await widget.columnWizard.positionalSequenceDistribution(), showBackground: protDistCompare,),
     );
   }
 }

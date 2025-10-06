@@ -50,6 +50,11 @@ class _ColumnWizardDialogState extends State<ColumnWizardDialog> with AutomaticK
           style: Theme.of(context).textTheme.headlineLarge,
         ),
         buildColumnSelection(columnWizardDialogBloc, state),
+        if (state.selectedColumn != null && state.selectedColumn!.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12.0), // left & right padding
+            child: buildColumnSubselection(columnWizardDialogBloc, state),
+          ),
         buildColumnWizardDisplay(state),
         buildColumnWizardOperationSelection(columnWizardDialogBloc, state),
         buildColumnWizardOperationDisplay(state),
@@ -59,6 +64,17 @@ class _ColumnWizardDialogState extends State<ColumnWizardDialog> with AutomaticK
   }
 
   Widget buildColumnSelection(ColumnWizardBloc columnWizardDialogBloc, ColumnWizardBlocState state) {
+    return BiocentralDropdownMenu<String>(
+      dropdownMenuEntries: state.columns.keys.map((key) => DropdownMenuEntry(value: key, label: key)).toList(),
+      label: const Text('Select column..'),
+      initialSelection: widget.initialSelectedColumn,
+      onSelected: (String? value) {
+        columnWizardDialogBloc.add(ColumnWizardSelectColumnEvent(value ?? ''));
+      }
+    );
+  }
+
+  Widget buildColumnSubselection(ColumnWizardBloc columnWizardDialogBloc, ColumnWizardBlocState state) {
     return BiocentralDropdownMenu<String>(
       dropdownMenuEntries: state.columns.keys.map((key) => DropdownMenuEntry(value: key, label: key)).toList(),
       label: const Text('Select column..'),

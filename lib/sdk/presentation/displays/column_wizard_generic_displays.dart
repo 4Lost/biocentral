@@ -161,6 +161,8 @@ class _ColumnWizardGenericDisplayState extends State<ColumnWizardGenericDisplay>
                   });},
                   itemExtent: SizeConfig.screenWidth(context) * 0.5,
                   children: [
+                    //BiocentralPositionalDistributionPlot(focus: _focusWindow == 0 ? true : false),
+                    //BiocentralAAKDEPlot(focus: _focusWindow == 0 ? true : false),
                     BiocentralHistogramKDEPlot(data: columnWizard.numericValues.toList(), focus: _focusWindow == 0 ? true : false),
                     BiocentralQQPlot(data: columnWizard.numericValues.toList(), focus: _focusWindow == 1 ? true : false),
                   ],
