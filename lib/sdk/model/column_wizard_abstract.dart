@@ -249,10 +249,8 @@ mixin NumericStats on ColumnWizard {
     response.match(
       (exception) {
         logger.e(exception);
-        print('error -----------------------------');
       },
       (data) {
-        print(data);
         final results = <Map<String, dynamic>>[];
         for (final map in data['results']) {
           final convertedMap = Map<String, dynamic>.from(map);

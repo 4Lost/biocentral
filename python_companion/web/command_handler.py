@@ -11,7 +11,6 @@ _command_functions = {
 }
 
 def handle_command(command: str, data):
-    print('--- command ---:' + command);
     command_function = _command_functions.get(command)
     try:
         parsed_json = json.loads(data)
