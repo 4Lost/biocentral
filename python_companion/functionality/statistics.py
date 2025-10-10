@@ -13,7 +13,6 @@ def dist_tester(json_data, distribution):
     data = json_data
 
     if not data:
-        print("Error: No data provided", flush=True)
         return {"error": "No data provided"}
 
     if isinstance(data, str):
@@ -138,19 +137,16 @@ LETTERS = [
 ]
 
 def sequence_distribution(sequences):
-    print('gen_seq - 1')
     dist = {l: 0.0 for l in LETTERS}
 
     for seq in sequences:
         for char in seq:
             if char in dist:
                 dist[char] += 1.0
-    print('gen_seq - 2')
     return dist
 
 
 def positional_sequence_distribution(sequences):
-    print('pos_seq - 1')
     position_dist = {}
 
     for seq in sequences:
@@ -159,5 +155,4 @@ def positional_sequence_distribution(sequences):
                 position_dist[i] = {l: 0.0 for l in LETTERS}
             if char in position_dist[i]:
                 position_dist[i][char] += 1.0
-    print('pos_seq - 2')
     return position_dist

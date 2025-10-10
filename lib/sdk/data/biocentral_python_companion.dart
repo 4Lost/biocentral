@@ -55,7 +55,7 @@ abstract class _BiocentralPythonCompanionStrategy {
 
   Future<Either<BiocentralException, Map<String, dynamic>>> testDistributions(List<double> data, List<String> types);
 
-  Future<Either<BiocentralException, Map<String, double>>> sequenceDistribution(List<String> data);
+  Future<Either<BiocentralException, Map<String, dynamic>>> sequenceDistribution(List<String> data);
 
   Future<Either<BiocentralException, Map<int, Map<String, int>>>> positionalSequenceDistribution(List<String> data);
 
@@ -156,7 +156,7 @@ class _BiocentralPythonCompanionDesktopStrategy extends _BiocentralPythonCompani
   }
 
   @override
-  Future<Either<BiocentralException, Map<String, double>>> sequenceDistribution(List<String> data) async {
+  Future<Either<BiocentralException, Map<String, dynamic>>> sequenceDistribution(List<String> data) async {
     final Map<String, String> body = {
       'data': jsonEncode(data),
     };
@@ -233,23 +233,24 @@ class _BiocentralPythonCompanionWebStrategy extends _BiocentralPythonCompanionSt
       return left(BiocentralPythonCompanionException(message: 'Could not load embeddings via python companion!'));
     }
     final decodedResult = jsonDecode(result);
-    // TODO Double check for web companion
     return right(decodedResult);
   }
 
   @override
-  Future<Either<BiocentralException, Map<String, double>>> sequenceDistribution(List<String> data) async {
+  Future<Either<BiocentralException, Map<String, dynamic>>> sequenceDistribution(List<String> data) async {
+    print('start backend calling');
     final String? result = await runPythonCommand(
       environmentVariables: {
         'PYODIDE_COMMAND': 'sequence_distribution',
         'PYODIDE_DATA': jsonEncode({'data': data})
       },
     );
+    print('end backend calling');
     if (result == null || result.isEmpty) {
       return left(BiocentralPythonCompanionException(message: 'Could not load embeddings via python companion!'));
     }
     final decodedResult = jsonDecode(result);
-    // TODO Double check for web companion
+    print(decodedResult.runtimeType.toString());
     return right(decodedResult);
   }
 
@@ -409,7 +410,7 @@ class BiocentralPythonCompanion {
     return _strategy.testDistributions(data, types);
   }
 
-  Future<Either<BiocentralException, Map<String, double>>> sequenceDistribution(List<String> data) {
+  Future<Either<BiocentralException, Map<String, dynamic>>> sequenceDistribution(List<String> data) {
     return _strategy.sequenceDistribution(data);
   }
 

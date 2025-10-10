@@ -49,23 +49,20 @@ class SequenceColumnWizard extends ColumnWizard with CounterStats {
 
   Future<Map<String, double>> sequenceDistribution() async {
     final Stopwatch stopwatch = Stopwatch()..start();
-    final Either<BiocentralException, Map<String, double>> response = await companion.sequenceDistribution(valueMap.values.map((sequence) => sequence.toString()).toList());
-    response.match(
+    Map<String, double> convertedMap = {};
+    final Either<BiocentralException, Map<String, dynamic>> response = await companion.sequenceDistribution(valueMap.values.map((sequence) => sequence.toString()).toList());
+
+    response.fold(
       (exception) {
         logger.e(exception);
-        print('error -----------------------------');
-
-        stopwatch.stop();
-        print('time elapsed: ${stopwatch.elapsed}');
       },
-      (data) {
-
-        stopwatch.stop();
-        print('time elapsed: ${stopwatch.elapsed}');
-        return data;
+      (map) {
+        convertedMap = Map<String, double>.from(map);
       },
     );
-    return {};
+    stopwatch.stop();
+    print('time elapsed: ${stopwatch.elapsed}');
+    return convertedMap;
   }
 
   Future<Map<int, Map<String, int>>> positionalSequenceDistribution() async {
