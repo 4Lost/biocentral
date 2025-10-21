@@ -1,8 +1,8 @@
-import sys
 import logging
-import functionality
+import sys
 
-from flask import Flask, request, jsonify
+import functionality
+from flask import Flask, jsonify, request
 
 
 # Redirect Flask logs to stdout
@@ -20,20 +20,19 @@ app = Flask(__name__)
 app.logger.addHandler(handler)
 app.logger.setLevel(logging.INFO)
 
+
 @app.route('/test_distributions', methods=['POST'])
 def test_normal_distribution():
-    result = functionality.test_distributions(request.json.get('data'), request.json.get('types'))
+    result = functionality.test_distributions(
+        request.json.get('data'), request.json.get('types'))
     return jsonify(result)
+
 
 @app.route('/sequence_distribution', methods=['POST'])
 def sequence_distribution():
     result = functionality.sequence_distribution(request.json.get('data'))
     return jsonify(result)
 
-@app.route('/positional_sequence_distribution', methods=['POST'])
-def positional_sequence_distribution():
-    result = functionality.positional_sequence_distribution(request.json.get('data'))
-    return jsonify(result)
 
 @app.route('/read_h5', methods=['POST'])
 def read_h5():
@@ -45,7 +44,6 @@ def read_h5():
 def write_h5():
     result = functionality.write_h5(request.json)
     return jsonify(result)
-
 
 
 @app.route('/terminate', methods=['GET'])

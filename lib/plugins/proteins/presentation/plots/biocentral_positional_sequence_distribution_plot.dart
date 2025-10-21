@@ -2,15 +2,13 @@ import 'package:biocentral/sdk/data/biocentral_background_data.dart';
 import 'package:flutter/material.dart';
 
 class BiocentralPositionalSequenceDistributionPlot extends StatefulWidget {
-  final Map<int, Map<String, int>> positionalDist;
+  final Map<int, Map<String, int>> distribution;
   final bool showBackground;
-  final bool focus;
 
   const BiocentralPositionalSequenceDistributionPlot({
-    required this.positionalDist,
+    required this.distribution,
     super.key,
     this.showBackground = false,
-    this.focus = true,
   });
 
   @override
@@ -25,14 +23,12 @@ class _PositionalDistributionPlotState
   @override
   void initState() {
     super.initState();
-    if (widget.showBackground) {
-      _loadData();
-    }
+    _loadData();
   }
 
   Future<void> _loadData() async {
     final data =
-        await BiocentralBackgroundData.getAAPositionalSequenceDistribution(widget.positionalDist.keys);
+        await BiocentralBackgroundData.getAAPositionalSequenceDistribution(widget.distribution.keys);
     setState(() {
       backgroundDist = data;
     });
@@ -48,9 +44,8 @@ class _PositionalDistributionPlotState
         return CustomPaint(
           size: Size(constraints.maxWidth, constraints.maxHeight),
           painter: _PositionalDistributionPainter(
-            widget.positionalDist,
+            widget.distribution,
             widget.showBackground ? backgroundDist : null,
-            widget.focus,
           ),
         );
       },
@@ -61,12 +56,11 @@ class _PositionalDistributionPlotState
 class _PositionalDistributionPainter extends CustomPainter {
   final Map<int, Map<String, int>> data;
   final Map<int, Map<String, double>>? backgroundDist;
-  final bool focus;
   final TextStyle plotTextStyle =
       const TextStyle(color: Colors.black, fontSize: 12);
 
   _PositionalDistributionPainter(
-      this.data, this.backgroundDist, this.focus);
+      this.data, this.backgroundDist);
 
   static final Map<String, Color> aminoColors = {
     'A': Colors.blue,

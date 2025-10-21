@@ -57,8 +57,6 @@ abstract class _BiocentralPythonCompanionStrategy {
 
   Future<Either<BiocentralException, Map<String, dynamic>>> sequenceDistribution(List<String> data);
 
-  Future<Either<BiocentralException, Map<int, Map<String, int>>>> positionalSequenceDistribution(List<String> data);
-
   Future<void> startCompanion();
 
   Future<bool> healthCheck();
@@ -150,9 +148,8 @@ class _BiocentralPythonCompanionDesktopStrategy extends _BiocentralPythonCompani
     final responseEither = await doPostRequest('test_distributions', body);
     return responseEither.match(
       (l) => left(l),
-      (r) {
-      return right(r as Map<String, dynamic>);
-    });
+      (r) => right(r as Map<String, dynamic>),
+    );
   }
 
   @override
@@ -163,22 +160,8 @@ class _BiocentralPythonCompanionDesktopStrategy extends _BiocentralPythonCompani
     final responseEither = await doPostRequest('sequence_distribution', body);
     return responseEither.match(
       (l) => left(l),
-      (r) {
-      return right(r as Map<String, double>);
-    });
-  }
-
-  @override
-  Future<Either<BiocentralException, Map<int, Map<String, int>>>> positionalSequenceDistribution(List<String> data) async {
-    final Map<String, String> body = {
-      'data': jsonEncode(data),
-    };
-    final responseEither = await doPostRequest('positional_sequence_distribution', body);
-    return responseEither.match(
-      (l) => left(l),
-      (r) {
-      return right(r as Map<int, Map<String, int>>);
-    });
+      (r) => right(r as Map<String, dynamic>),
+    );
   }
 
   @override
@@ -230,7 +213,7 @@ class _BiocentralPythonCompanionWebStrategy extends _BiocentralPythonCompanionSt
       },
     );
     if (result == null || result.isEmpty) {
-      return left(BiocentralPythonCompanionException(message: 'Could not load embeddings via python companion!'));
+      return left(BiocentralPythonCompanionException(message: 'Could not load distribution stats via python companion!'));
     }
     final decodedResult = jsonDecode(result);
     return right(decodedResult);
@@ -245,38 +228,11 @@ class _BiocentralPythonCompanionWebStrategy extends _BiocentralPythonCompanionSt
         'PYODIDE_DATA': jsonEncode({'data': data})
       },
     );
-    print('end backend calling');
     if (result == null || result.isEmpty) {
-      return left(BiocentralPythonCompanionException(message: 'Could not load embeddings via python companion!'));
+      return left(BiocentralPythonCompanionException(message: 'Could not load sequence distribution via python companion!'));
     }
     final decodedResult = jsonDecode(result);
-    print(decodedResult.runtimeType.toString());
     return right(decodedResult);
-  }
-
-  @override
-  Future<Either<BiocentralException, Map<int, Map<String, int>>>> positionalSequenceDistribution(List<String> data) async {
-    final String? result = await runPythonCommand(
-      environmentVariables: {
-        'PYODIDE_COMMAND': 'positional_sequence_distribution',
-        'PYODIDE_DATA': jsonEncode({'data': data})
-      },
-    );
-    if (result == null || result.isEmpty) {
-      return left(BiocentralPythonCompanionException(message: 'Could not load embeddings via python companion!'));
-    }
-    final decodedResult = jsonDecode(result) as Map<String, dynamic>;
-
-    final converted = decodedResult.map<int, Map<String, int>>((key, value) {
-      return MapEntry(
-        int.parse(key),
-        (value as Map<String, dynamic>).map<String, int>(
-          (k, v) => MapEntry(k, (v as num).toInt()),
-        ),
-      );
-    });
-
-    return right(converted);
   }
 
   @override
@@ -412,9 +368,5 @@ class BiocentralPythonCompanion {
 
   Future<Either<BiocentralException, Map<String, dynamic>>> sequenceDistribution(List<String> data) {
     return _strategy.sequenceDistribution(data);
-  }
-
-  Future<Either<BiocentralException, Map<int, Map<String, int>>>> positionalSequenceDistribution(List<String> data) {
-    return _strategy.positionalSequenceDistribution(data);
   }
 }
