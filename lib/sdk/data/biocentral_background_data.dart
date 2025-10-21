@@ -4,12 +4,26 @@ import 'package:flutter/services.dart';
 class BiocentralBackgroundData {
   static final String _backgroundPath = 'assets/background_dist/distribution_AA.json';
 
-  static Future<Map<String, double>> getAASequenceDistribution() async {
+  static Future<Map<String, Map<String, double>>> getAALengthDistribution() async {
+    final raw = await rootBundle.loadString(_backgroundPath);
+    final Map<String, dynamic> jsonData = json.decode(raw);
+    final Map<String, Map<String, double>> parsed = {};
+
+    Map<String, dynamic> dist = jsonData['length_stats'];
+    parsed['length_stats'] = Map<String, double>.from(dist);
+
+    dist = jsonData['length_kde'];
+    parsed['length_kde'] = Map<String, double>.from(dist);
+
+    return parsed;
+  }
+
+  static Future<Map<String, double>> getAASequenceDistribution() async { //TODO: Check correct reading
     final raw = await rootBundle.loadString(_backgroundPath);
     final Map<String, dynamic> jsonData = json.decode(raw);
 
-    final Map<String, dynamic> dist = jsonData['distribution'];
     final Map<String, double> parsed = {};
+    final Map<String, dynamic> dist = jsonData['distribution'];
 
     final double total = dist.values.fold(0.0, (a, b) => a + (b as num).toDouble());
 
@@ -24,8 +38,8 @@ class BiocentralBackgroundData {
   final raw = await rootBundle.loadString(_backgroundPath);
   final Map<String, dynamic> jsonData = json.decode(raw);
 
-  final Map<String, dynamic> positional = jsonData['positional_distribution'];
   final Map<int, Map<String, double>> parsed = {};
+  final Map<String, dynamic> positional = jsonData['positional_distribution'];
 
   positional.forEach((posStr, aaCounts) {
     final pos = int.parse(posStr);

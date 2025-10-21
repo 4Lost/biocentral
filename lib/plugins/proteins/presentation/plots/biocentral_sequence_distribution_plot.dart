@@ -4,13 +4,11 @@ import 'package:flutter/material.dart';
 class BiocentralSequenceDistributionPlot extends StatefulWidget {
   final Map<String, double> distribution;
   final bool showBackground;
-  final bool focus;
 
   const BiocentralSequenceDistributionPlot({
     required this.distribution,
     super.key,
     this.showBackground = false,
-    this.focus = true,
   });
 
   @override
@@ -25,9 +23,7 @@ class _GeneralDistributionPlotState
   @override
   void initState() {
     super.initState();
-    if (widget.showBackground) {
-      _loadData();
-    }
+    _loadData();
   }
 
   Future<void> _loadData() async {
@@ -51,7 +47,6 @@ class _GeneralDistributionPlotState
             widget.distribution,
             widget.showBackground ? backgroundDist : null,
             widget.showBackground,
-            widget.focus,
           ),
         );
       },
@@ -62,12 +57,11 @@ class _GeneralDistributionPlotState
 class _GeneralDistributionPainter extends CustomPainter {
   final Map<String, double> data;
   final Map<String, double>? backgroundDist;
-  final bool focus;
   final bool showBackground;
   final TextStyle plotTextStyle =
       const TextStyle(color: Colors.black, fontSize: 12);
 
-  _GeneralDistributionPainter(this.data, this.backgroundDist, this.showBackground, this.focus);
+  _GeneralDistributionPainter(this.data, this.backgroundDist, this.showBackground);
 
   @override
   void paint(Canvas canvas, Size size) {

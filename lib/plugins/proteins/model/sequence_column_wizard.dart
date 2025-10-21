@@ -47,6 +47,43 @@ class SequenceColumnWizard extends ColumnWizard with CounterStats {
     return _composition!;
   }
 
+  Future<Map<String, dynamic>> distribution() async {
+    final Stopwatch stopwatch = Stopwatch()..start();
+    Map<String, dynamic> map = {};
+    final Either<BiocentralException, Map<String, dynamic>> response = await companion.sequenceDistribution(valueMap.values.map((sequence) => sequence.toString()).toList());
+
+    response.fold(
+      (exception) {
+        logger.e(exception);
+      },
+      (r) {
+        map = r;
+      },
+    );
+    stopwatch.stop();
+    print('time elapsed: ${stopwatch.elapsed}');
+    return map;
+  }
+  /*
+  Future<Map<String, Map<String, double>>> lengthDistribution() async {
+    final Stopwatch stopwatch = Stopwatch()..start();
+    final Map<String, Map<String, double>> convertedMap = {};
+    final Either<BiocentralException, Map<String, dynamic>> response = await companion.lengthDistribution(valueMap.values.map((sequence) => sequence.toString()).toList());
+
+    response.fold(
+      (exception) {
+        logger.e(exception);
+      },
+      (map) {
+        convertedMap['length_stats'] = Map<String, double>.from(map['length_stats']);
+        convertedMap['length_kde'] = Map<String, double>.from(map['length_kde']);
+      },
+    );
+    stopwatch.stop();
+    print('time elapsed: ${stopwatch.elapsed}');
+    return convertedMap;
+  }
+
   Future<Map<String, double>> sequenceDistribution() async {
     final Stopwatch stopwatch = Stopwatch()..start();
     Map<String, double> convertedMap = {};
@@ -67,23 +104,23 @@ class SequenceColumnWizard extends ColumnWizard with CounterStats {
 
   Future<Map<int, Map<String, int>>> positionalSequenceDistribution() async {
     final Stopwatch stopwatch = Stopwatch()..start();
-    final Either<BiocentralException, Map<int, Map<String, int>>> response = await companion.positionalSequenceDistribution(valueMap.values.map((sequence) => sequence.toString()).toList());
-    response.match(
+    Map<int, Map<String, int>> convertedMap = {};
+    final Either<BiocentralException, Map<int, dynamic>> response = await companion.positionalSequenceDistribution(valueMap.values.map((sequence) => sequence.toString()).toList());
+
+    response.fold(
       (exception) {
         logger.e(exception);
-        print('error -----------------------------');
-
-        stopwatch.stop();
-        print('time elapsed: ${stopwatch.elapsed}');
       },
-      (data) {
-
-        stopwatch.stop();
-        print('time elapsed: ${stopwatch.elapsed}');
-        return data;
+      (map) {
+        Map<String, int> bufferMap = {};
+        for (var key in map.keys) {
+          bufferMap = Map<String, int>.from(map[key]);
+          convertedMap[key] = bufferMap;
+        }
       },
     );
-    return {};
-  }
-
+    stopwatch.stop();
+    print('time elapsed: ${stopwatch.elapsed}');
+    return convertedMap;
+  }*/
 }

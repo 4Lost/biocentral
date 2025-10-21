@@ -1,14 +1,15 @@
 import json
+
 import functionality
 
 _command_functions = {
     "setup": lambda _: "Success",
-    "test_distributions": lambda data, types: functionality.test_distributions(data,types),
+    "test_distributions": lambda data, types: functionality.test_distributions(data, types),
     "sequence_distribution": lambda data: functionality.sequence_distribution(data),
-    "positional_sequence_distribution": lambda data: functionality.positional_sequence_distribution(data),
     "read_h5": lambda data: functionality.read_h5(data),
     "write_h5": lambda data: functionality.write_h5(data)
 }
+
 
 def handle_command(command: str, data):
     command_function = _command_functions.get(command)

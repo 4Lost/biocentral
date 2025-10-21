@@ -1,13 +1,16 @@
 import json
-import numpy as np
+from collections import defaultdict
 
+import numpy as np
 from scipy import stats
+
 
 def test_distributions(json_data, distributions):
     results = []
     for distribution in distributions:
         results.append(dist_tester(json_data, distribution))
     return {"results": results}
+
 
 def dist_tester(json_data, distribution):
     data = json_data
@@ -28,19 +31,23 @@ def dist_tester(json_data, distribution):
         case 't':
             df_est, mean, stdDev = stats.t.fit(np_data)
             # Perform Kolmogorow-Smirnow test
-            statistic, p_value = stats.kstest(np_data, 't', args=(df_est, mean, stdDev))
+            statistic, p_value = stats.kstest(
+                np_data, 't', args=(df_est, mean, stdDev))
         case 'lognorm':
             shape, mean, stdDev = stats.lognorm.fit(np_data)
             # Perform Kolmogorow-Smirnow test
-            statistic, p_value = stats.kstest(np_data, 'lognorm', args=(shape, mean, stdDev))
+            statistic, p_value = stats.kstest(
+                np_data, 'lognorm', args=(shape, mean, stdDev))
         case 'chi2':
             df_est, mean, stdDev = stats.chi2.fit(np_data)
             # Perform Kolmogorow-Smirnow test
-            statistic, p_value = stats.kstest(np_data, 'chi2', args=(df_est, mean, stdDev))
+            statistic, p_value = stats.kstest(
+                np_data, 'chi2', args=(df_est, mean, stdDev))
         case 'gamma':
             shape, mean, stdDev = stats.lognorm.fit(np_data)
             # Perform Kolmogorow-Smirnow test
-            statistic, p_value = stats.kstest(np_data, 'gamma', args=(shape, mean, stdDev))
+            statistic, p_value = stats.kstest(
+                np_data, 'gamma', args=(shape, mean, stdDev))
         case 'beta':
             # Normalize data
             data_min, data_max = min(np_data), max(np_data)
@@ -52,14 +59,17 @@ def dist_tester(json_data, distribution):
         case 'weibull':
             shape, mean, stdDev = stats.weibull_min.fit(np_data)
             # Perform Kolmogorow-Smirnow test
-            statistic, p_value = stats.kstest(np_data, 'weibull_min', args=(shape, mean, stdDev))
+            statistic, p_value = stats.kstest(
+                np_data, 'weibull_min', args=(shape, mean, stdDev))
         case 'exponential':
             stdDev = stats.expon.fit(np_data, floc=0)[1]
             # Perform Kolmogorow-Smirnow test
-            statistic, p_value = stats.kstest(np_data, 'expon', args=(0, stdDev))
+            statistic, p_value = stats.kstest(
+                np_data, 'expon', args=(0, stdDev))
         case 'uniform':
             # Normalize data to range [0, 1]
-            data_norm = (np_data - np.min(np_data)) / (np.max(np_data) - np.min(np_data))
+            data_norm = (np_data - np.min(np_data)) / \
+                (np.max(np_data) - np.min(np_data))
             statistic, p_value = stats.kstest(data_norm, 'uniform')
         case 'bernoulli':
             statistic = 0
@@ -76,7 +86,8 @@ def dist_tester(json_data, distribution):
                 n = len(np_data)
                 expected = [(1 - p_hat) * n, p_hat * n]
                 # Run chi-square test
-                statistic, p_value = stats.chisquare(f_obs=observed, f_exp=expected)
+                statistic, p_value = stats.chisquare(
+                    f_obs=observed, f_exp=expected)
         case 'binomial':
             n = np_data.size
             p_hat = np.mean(np_data) / n
@@ -91,7 +102,8 @@ def dist_tester(json_data, distribution):
             observed_counts = observed_counts[nonzero]
             expected_counts = expected_counts[nonzero]
             # Run chi-square test
-            statistic, p_value = stats.chisquare(f_obs=observed_counts, f_exp=expected_counts)
+            statistic, p_value = stats.chisquare(
+                f_obs=observed_counts, f_exp=expected_counts)
         case 'geometric':
             p_hat = 1 / np.mean(np_data)
             # Get observed frequencies
@@ -106,17 +118,20 @@ def dist_tester(json_data, distribution):
             observed_counts = observed_counts[mask]
             expected_counts = expected_counts[mask]
             # Run chi-square test
-            statistic, p_value = stats.chisquare(f_obs=observed_counts, f_exp=expected_counts)
+            statistic, p_value = stats.chisquare(
+                f_obs=observed_counts, f_exp=expected_counts)
         case 'poisson':
             lambda_hat = np.mean(np_data)
             # Observed frequencies
             values, counts = np.unique(np_data, return_counts=True)
             # Expected frequencies under Poisson(λ)
-            expected_counts = stats.poisson.pmf(values, mu=lambda_hat) * len(np_data)
+            expected_counts = stats.poisson.pmf(
+                values, mu=lambda_hat) * len(np_data)
             # Chi-square test
-            statistic = np.sum((counts - expected_counts) ** 2 / expected_counts)
+            statistic = np.sum((counts - expected_counts)
+                               ** 2 / expected_counts)
             dof = len(values) - 1 - 1  # subtract 1 for lambda estimation
-            p_value = 1 - stats.chi2.cdf(statistic, df=dof)  
+            p_value = 1 - stats.chi2.cdf(statistic, df=dof)
 
     # Interpret the result
     # TODO p_value can be unassignedt a
@@ -130,13 +145,33 @@ def dist_tester(json_data, distribution):
     }
     return result
 
+
 LETTERS = [
     'A', 'C', 'D', 'E', 'F', 'G', 'H', 'I',
     'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S',
     'T', 'V', 'W', 'Y', 'X', 'U',
 ]
 
+
 def sequence_distribution(sequences):
+    result = {
+        "lenDistribution": length_distribution(sequences),
+        "seqDistribution": calc_sequence_distribution(sequences),
+        "posSeqDistribution": positional_sequence_distribution(sequences),
+    }
+    print(result)
+    return result
+
+
+def length_distribution(sequences):
+    dist = defaultdict(int)
+
+    for seq in sequences:
+        dist[len(seq)] += 1
+    return dict(dist)
+
+
+def calc_sequence_distribution(sequences):
     dist = {l: 0.0 for l in LETTERS}
 
     for seq in sequences:
@@ -156,3 +191,4 @@ def positional_sequence_distribution(sequences):
             if char in position_dist[i]:
                 position_dist[i][char] += 1.0
     return position_dist
+
