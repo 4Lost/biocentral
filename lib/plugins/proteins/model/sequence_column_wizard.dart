@@ -1,7 +1,8 @@
+import 'dart:math';
 import 'package:bio_flutter/bio_flutter.dart';
+import 'package:flutter/foundation.dart';
 import 'package:biocentral/sdk/biocentral_sdk.dart';
 import 'package:biocentral/sdk/data/biocentral_python_companion.dart';
-import 'package:fpdart/fpdart.dart';
 
 class SequenceColumnWizardFactory extends ColumnWizardFactory {
   @override
@@ -47,23 +48,119 @@ class SequenceColumnWizard extends ColumnWizard with CounterStats {
     return _composition!;
   }
 
-  Future<Map<String, dynamic>> distribution() async {
-    final Stopwatch stopwatch = Stopwatch()..start();
-    Map<String, dynamic> map = {};
-    final Either<BiocentralException, Map<String, dynamic>> response = await companion.sequenceDistribution(valueMap.values.map((sequence) => sequence.toString()).toList());
+  ({
+    Map<String, Map<String, double>> lenDistribution,
+    Map<String, double> seqDistribution,
+    Map<int, Map<String, int>> posSeqDistribution,
+  })? _distribution;
 
-    response.fold(
-      (exception) {
-        logger.e(exception);
-      },
-      (r) {
-        map = r;
-      },
-    );
-    stopwatch.stop();
-    print('time elapsed: ${stopwatch.elapsed}');
-    return map;
+  Future<({
+    Map<String, Map<String, double>> lenDistribution,
+    Map<String, double> seqDistribution,
+    Map<int, Map<String, int>> posSeqDistribution,
+  })> distribution() async {
+    if(_distribution != null) {
+      return _distribution!;
+    }
+
+    final ({
+    Map<String, Map<String, double>> lenDistribution,
+    Map<String, double> seqDistribution,
+    Map<int, Map<String, int>> posSeqDistribution,
+  }) result = await compute(_calculateDistribution, valueMap.values.map((sequence) => sequence.toString()).toList());
+    _distribution = result;
+    return _distribution!;
+}
+
+Future<({
+  Map<String, Map<String, double>> lenDistribution,
+  Map<String, double> seqDistribution,
+  Map<int, Map<String, int>> posSeqDistribution,
+})> _calculateDistribution(List<String> sequences) async {
+  const letters = [
+    'A', 'C', 'D', 'E', 'F', 'G', 'H', 'I',
+    'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S',
+    'T', 'V', 'W', 'Y', 'X', 'U'
+  ];
+
+  // Initialize results
+  final Map<String, Map<String, double>> lenDistribution = {};
+  final Map<String, double> seqDistribution = {for (final l in letters) l: 0};
+  final Map<int, Map<String, int>> posSeqDistribution = {};
+  lenDistribution['length_kde'] = {};
+  lenDistribution['length_stats'] = {};
+
+  final List<int> lengths = [];
+
+  // Single pass through all sequences
+  for (final seq in sequences) {
+    final len = seq.length;
+    lengths.add(len);
+
+    // Update KDE-style length counts
+    lenDistribution['length_kde']![len.toString()] =
+        (lenDistribution['length_kde']![len.toString()] ?? 0) + 1;
+
+    // Update per-character and positional distributions
+    for (var i = 0; i < seq.length; i++) {
+      final char = seq[i];
+      if (letters.contains(char)) {
+        seqDistribution[char] = (seqDistribution[char] ?? 0) + 1;
+
+        posSeqDistribution.putIfAbsent(
+          i,
+          () => {for (final l in letters) l: 0},
+        );
+        posSeqDistribution[i]![char] =
+            (posSeqDistribution[i]![char] ?? 0) + 1;
+      }
+    }
   }
+
+  final totalCounts = lenDistribution['length_kde']!.values.reduce((a, b) => a + b);
+  lenDistribution['length_kde']!.updateAll((key, value) => value / totalCounts);
+
+  if (lengths.isNotEmpty) {
+    lengths.sort();
+
+    final int n = lengths.length;
+    final double mean = lengths.reduce((a, b) => a + b) / n;
+
+    final double variance = lengths
+            .map((x) => pow(x - mean, 2))
+            .reduce((a, b) => a + b) /
+        n;
+
+    final double stdDev = sqrt(variance);
+
+    double percentile(List<int> sortedList, double p) {
+      final double rank = p * (sortedList.length - 1);
+      final int lower = rank.floor();
+      final int upper = rank.ceil();
+      if (lower == upper) return sortedList[lower].toDouble();
+      final double weight = rank - lower;
+      return sortedList[lower] * (1 - weight) + sortedList[upper] * weight;
+    }
+
+    lenDistribution['length_stats'] = {
+      'min': lengths.first.toDouble(),
+      'max': lengths.last.toDouble(),
+      'mean': mean,
+      'variance': variance,
+      'std_dev': stdDev,
+      'p01': percentile(lengths, 0.01),
+      'p99': percentile(lengths, 0.99),
+    };
+  }
+
+  return (
+    lenDistribution: lenDistribution,
+    seqDistribution: seqDistribution,
+    posSeqDistribution: posSeqDistribution,
+  );
+}
+
+
   /*
   Future<Map<String, Map<String, double>>> lengthDistribution() async {
     final Stopwatch stopwatch = Stopwatch()..start();

@@ -46,7 +46,6 @@ class _GeneralDistributionPlotState
           painter: _GeneralDistributionPainter(
             widget.distribution,
             widget.showBackground ? backgroundDist : null,
-            widget.showBackground,
           ),
         );
       },
@@ -57,11 +56,10 @@ class _GeneralDistributionPlotState
 class _GeneralDistributionPainter extends CustomPainter {
   final Map<String, double> data;
   final Map<String, double>? backgroundDist;
-  final bool showBackground;
   final TextStyle plotTextStyle =
       const TextStyle(color: Colors.black, fontSize: 12);
 
-  _GeneralDistributionPainter(this.data, this.backgroundDist, this.showBackground);
+  _GeneralDistributionPainter(this.data, this.backgroundDist);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -144,8 +142,7 @@ class _GeneralDistributionPainter extends CustomPainter {
             plotSize.height, normData[aa]!, Colors.blue);
       }
 
-      if (showBackground &&
-          normBackground != null &&
+      if (normBackground != null &&
           normBackground.containsKey(aa)) {
         final double barX = groupX + barWidth;
         _drawBar(canvas, barX, plotOffset.dy + plotSize.height, barWidth,
@@ -183,7 +180,7 @@ class _GeneralDistributionPainter extends CustomPainter {
 
     final entries = [
       {'label': 'Distribution', 'color': Colors.blue}, // %TODO : better names
-      if (showBackground) {'label': 'Background Data', 'color': Colors.pink},
+      if (backgroundDist != null) {'label': 'Background Data', 'color': Colors.pink},
     ];
 
     for (final entry in entries) {
