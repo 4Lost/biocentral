@@ -5,6 +5,7 @@ class BiocentralBackgroundData {
   static final String _backgroundPath = 'assets/background_dist/distribution_AA.json';
 
   static Future<Map<String, Map<String, double>>> getAALengthDistribution() async {
+
     final raw = await rootBundle.loadString(_backgroundPath);
     final Map<String, dynamic> jsonData = json.decode(raw);
     final Map<String, Map<String, double>> parsed = {};
@@ -18,7 +19,7 @@ class BiocentralBackgroundData {
     return parsed;
   }
 
-  static Future<Map<String, double>> getAASequenceDistribution() async { //TODO: Check correct reading
+  static Future<Map<String, double>> getAASequenceDistribution() async {
     final raw = await rootBundle.loadString(_backgroundPath);
     final Map<String, dynamic> jsonData = json.decode(raw);
 

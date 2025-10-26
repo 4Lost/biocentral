@@ -1,5 +1,5 @@
 import 'package:biocentral/plugins/proteins/model/sequence_column_wizard.dart';
-import 'package:biocentral/plugins/proteins/presentation/plots/biocentral_AA_kde_plot.dart';
+import 'package:biocentral/plugins/proteins/presentation/plots/biocentral_length_distribution_plot.dart';
 import 'package:biocentral/plugins/proteins/presentation/plots/biocentral_sequence_distribution_plot.dart';
 import 'package:biocentral/plugins/proteins/presentation/plots/biocentral_positional_sequence_distribution_plot.dart';
 import 'package:biocentral/sdk/biocentral_sdk.dart';
@@ -26,9 +26,13 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<Map<String, dynamic>>(
+    return FutureBuilder<({
+      Map<String, Map<String, double>> lenDistribution,
+      Map<String, double> seqDistribution,
+      Map<int, Map<String, int>> posSeqDistribution,
+    })>(
       future: widget.columnWizard.distribution(),
-      builder: (context, distSnapshot) {
+      builder: (context, snapshot) {
         return Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -50,7 +54,7 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
                 child: const Text('Toggle Comparison', style: TextStyle(color: Colors.white)),
               ),
             ),
-            buildLengthCompositionPlot(distSnapshot),
+            snapshot.hasData ? buildLengthCompositionPlot(snapshot.data!.lenDistribution) : const CircularProgressIndicator(),
             const Text('Protein Distribution\n'),
             SizedBox(
               height: SizeConfig.safeBlockHorizontal(context) * 3,
@@ -65,7 +69,7 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
                 child: const Text('Toggle Comparison', style: TextStyle(color: Colors.white)),
               ),
             ),
-            buildCompositionPlot(distSnapshot),
+            snapshot.hasData ? buildCompositionPlot(snapshot.data!.seqDistribution) : const CircularProgressIndicator(),
             const Text('Positional Protein Distribution\n'),
             SizedBox(
               height: SizeConfig.safeBlockHorizontal(context) * 3,
@@ -80,86 +84,13 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
                 child: const Text('Toggle Comparison', style: TextStyle(color: Colors.white)),
               ),
             ),
-            buildPositionalCompositionPlot(distSnapshot),
+            snapshot.hasData ? buildPositionalCompositionPlot(snapshot.data!.posSeqDistribution) : const CircularProgressIndicator(),
           ],
         );
       }
     );
   }
-/*
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<Map<String, Map<String, double>>>(
-      future: widget.columnWizard.lengthDistribution(),
-      builder: (context, lenDistSnapshot) {
-        return FutureBuilder<Map<String, double>>(
-          future: widget.columnWizard.sequenceDistribution(),
-          builder: (cntxt, seqDistSnapshot) {
-            return FutureBuilder<Map<int, Map<String, int>>>(
-              future: widget.columnWizard.positionalSequenceDistribution(),
-              builder: (ctx, posSeqDistSnapshot) {
-                return Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    buildSequenceStats(),
-                    SizedBox(
-                      width: SizeConfig.safeBlockHorizontal(context) * 5,
-                    ),
-                    const Text('Length Distribution\n'),
-                    SizedBox(
-                      height: SizeConfig.safeBlockHorizontal(context) * 3,
-                      width: SizeConfig.safeBlockHorizontal(context) * 8,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).primaryColor, textStyle: Theme.of(context).textTheme.labelMedium,
-                        ),
-                        onPressed: () => setState(() {
-                          lenDistCompare = !lenDistCompare;
-                        }),
-                        child: const Text('Toggle Comparison', style: TextStyle(color: Colors.white)),
-                      ),
-                    ),
-                    buildLengthCompositionPlot(lenDistSnapshot),
-                    const Text('Protein Distribution\n'),
-                    SizedBox(
-                      height: SizeConfig.safeBlockHorizontal(context) * 3,
-                      width: SizeConfig.safeBlockHorizontal(context) * 8,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).primaryColor, textStyle: Theme.of(context).textTheme.labelMedium,
-                        ),
-                        onPressed: () => setState(() {
-                          protDistCompare = !protDistCompare;
-                        }),
-                        child: const Text('Toggle Comparison', style: TextStyle(color: Colors.white)),
-                      ),
-                    ),
-                    buildCompositionPlot(seqDistSnapshot),
-                    const Text('Positional Protein Distribution\n'),
-                    SizedBox(
-                      height: SizeConfig.safeBlockHorizontal(context) * 3,
-                      width: SizeConfig.safeBlockHorizontal(context) * 8,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).primaryColor, textStyle: Theme.of(context).textTheme.labelMedium,
-                        ),
-                        onPressed: () => setState(() {
-                          posProtDistCompare = !posProtDistCompare;
-                        }),
-                        child: const Text('Toggle Comparison', style: TextStyle(color: Colors.white)),
-                      ),
-                    ),
-                    buildPositionalCompositionPlot(posSeqDistSnapshot),
-                  ],
-                );
-              }
-            );
-          }
-        );
-      }
-    );
-  }
-*/
+  
   Widget buildSequenceStats() {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -245,47 +176,27 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
     );
   }
 
-  Widget buildLengthCompositionPlot(AsyncSnapshot<Map<String, dynamic>> snapshot) {
-    if(snapshot.hasData && snapshot.data != null) {
-        return SizedBox(
-        width: 2000,
-        height: 500,
-        child: BiocentralAAKDEPlot(focus: lenDistCompare,), //[lenDistribution]
-      );
-    }
-    return const CircularProgressIndicator();
+  Widget buildLengthCompositionPlot(Map<String, Map<String, double>> data) {
+    return SizedBox(
+      width: 2000,
+      height: 500,
+      child: BiocentralLengthDistributionPlot(distribution: data, showBackground: lenDistCompare,),
+    );
   }
 
-  /*Widget buildLengthCompositionPlot(AsyncSnapshot<Map<String, double>> snapshot) {
-    if(snapshot.hasData && snapshot.data != null) {
-        return SizedBox(
-        width: 2000,
-        height: 500,
-        child: BiocentralAAKDEPlot(distribution: snapshot.data!, showBackground: lenDistCompare,),
-      );
-    }
-    return const CircularProgressIndicator();
-  }*/
-
-  Widget buildCompositionPlot(AsyncSnapshot<Map<String, dynamic>> snapshot) {
-    if(snapshot.hasData && snapshot.data != null) {
-        return SizedBox(
-        width: 2000,
-        height: 500,
-        child: BiocentralSequenceDistributionPlot(distribution: Map<String, double>.from(snapshot.data!['seqDistribution']), showBackground: protDistCompare,),
-      );
-    }
-    return const CircularProgressIndicator();
+  Widget buildCompositionPlot(Map<String, double> data) {
+    return SizedBox(
+      width: 2000,
+      height: 500,
+      child: BiocentralSequenceDistributionPlot(distribution: data, showBackground: protDistCompare,),
+    );
   }
 
-  Widget buildPositionalCompositionPlot(AsyncSnapshot<Map<String, dynamic>> snapshot) {
-    if(snapshot.hasData && snapshot.data != null) {
-        return SizedBox(
-        width: 2000,
-        height: 500,
-        child: BiocentralPositionalSequenceDistributionPlot(distribution: (snapshot.data!['posSeqDistribution'] as Map<String, dynamic>).map((key, value) => MapEntry(int.parse(key), Map<String, int>.from(value))), showBackground: posProtDistCompare,),
-      );
-    }
-    return const CircularProgressIndicator();
+  Widget buildPositionalCompositionPlot(Map<int, Map<String, int>> data) {
+    return SizedBox(
+      width: 2000,
+      height: 500,
+      child: BiocentralPositionalSequenceDistributionPlot(distribution: data, showBackground: posProtDistCompare,),
+    );
   }
 }
