@@ -58,3 +58,4 @@ app.*.map.json
 /assets/python_companion.zip
 /assets/python_companion/
 /assets/python_companion.zip.hash
+/assets/background_dist/distribution_AA.json

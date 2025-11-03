@@ -55,8 +55,6 @@ abstract class _BiocentralPythonCompanionStrategy {
 
   Future<Either<BiocentralException, Map<String, dynamic>>> testDistributions(List<double> data, List<String> types);
 
-  Future<Either<BiocentralException, Map<String, dynamic>>> sequenceDistribution(List<String> data);
-
   Future<void> startCompanion();
 
   Future<bool> healthCheck();
@@ -153,18 +151,6 @@ class _BiocentralPythonCompanionDesktopStrategy extends _BiocentralPythonCompani
   }
 
   @override
-  Future<Either<BiocentralException, Map<String, dynamic>>> sequenceDistribution(List<String> data) async {
-    final Map<String, String> body = {
-      'data': jsonEncode(data),
-    };
-    final responseEither = await doPostRequest('sequence_distribution', body);
-    return responseEither.match(
-      (l) => left(l),
-      (r) => right(r as Map<String, dynamic>),
-    );
-  }
-
-  @override
   Future<void> startCompanion() async {
     SeriousPython.run(
       'assets/python_companion.zip',
@@ -214,22 +200,6 @@ class _BiocentralPythonCompanionWebStrategy extends _BiocentralPythonCompanionSt
     );
     if (result == null || result.isEmpty) {
       return left(BiocentralPythonCompanionException(message: 'Could not load distribution stats via python companion!'));
-    }
-    final decodedResult = jsonDecode(result);
-    return right(decodedResult);
-  }
-
-  @override
-  Future<Either<BiocentralException, Map<String, dynamic>>> sequenceDistribution(List<String> data) async {
-    print('start backend calling');
-    final String? result = await runPythonCommand(
-      environmentVariables: {
-        'PYODIDE_COMMAND': 'sequence_distribution',
-        'PYODIDE_DATA': jsonEncode({'data': data})
-      },
-    );
-    if (result == null || result.isEmpty) {
-      return left(BiocentralPythonCompanionException(message: 'Could not load sequence distribution via python companion!'));
     }
     final decodedResult = jsonDecode(result);
     return right(decodedResult);
@@ -364,9 +334,5 @@ class BiocentralPythonCompanion {
 
   Future<Either<BiocentralException, Map<String, dynamic>>> testDistributions(List<double> data, List<String> types) {
     return _strategy.testDistributions(data, types);
-  }
-
-  Future<Either<BiocentralException, Map<String, dynamic>>> sequenceDistribution(List<String> data) {
-    return _strategy.sequenceDistribution(data);
   }
 }
