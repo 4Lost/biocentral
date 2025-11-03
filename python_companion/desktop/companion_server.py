@@ -28,12 +28,6 @@ def test_normal_distribution():
     return jsonify(result)
 
 
-@app.route('/sequence_distribution', methods=['POST'])
-def sequence_distribution():
-    result = functionality.sequence_distribution(request.json.get('data'))
-    return jsonify(result)
-
-
 @app.route('/read_h5', methods=['POST'])
 def read_h5():
     result = functionality.read_h5(request.json)

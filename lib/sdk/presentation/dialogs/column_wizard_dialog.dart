@@ -21,6 +21,9 @@ class ColumnWizardDialog extends StatefulWidget {
 }
 
 class _ColumnWizardDialogState extends State<ColumnWizardDialog> with AutomaticKeepAliveClientMixin {
+  String? selectedColumn;
+  String? selectedSubColumn;
+
   void closeDialog() {
     Navigator.of(context).pop();
   }
@@ -68,18 +71,24 @@ class _ColumnWizardDialogState extends State<ColumnWizardDialog> with AutomaticK
       dropdownMenuEntries: state.columns.keys.map((key) => DropdownMenuEntry(value: key, label: key)).toList(),
       label: const Text('Select column..'),
       initialSelection: widget.initialSelectedColumn,
-      onSelected: (String? value) {
-        columnWizardDialogBloc.add(ColumnWizardSelectColumnEvent(value ?? ''));
+      onSelected: (String? value) => {
+        selectedColumn = value ?? '',
+        columnWizardDialogBloc.add(ColumnWizardSelectColumnEvent(selectedColumn!)),
       }
     );
   }
 
   Widget buildColumnSubselection(ColumnWizardBloc columnWizardDialogBloc, ColumnWizardBlocState state) {
+    final Iterable<String> keys = (Map.of(state.columns)..removeWhere((key, value) => key == selectedColumn || value.keys.length > 10)).keys;
+    final List<DropdownMenuEntry<String>> entries = keys.map((key) => DropdownMenuEntry(value: key, label: key)).toList();
+
     return BiocentralDropdownMenu<String>(
-      dropdownMenuEntries: state.columns.keys.map((key) => DropdownMenuEntry(value: key, label: key)).toList(),
-      label: const Text('Select column..'),
-      initialSelection: widget.initialSelectedColumn,
-      onSelected: (String? value) => columnWizardDialogBloc.add(ColumnWizardSelectColumnEvent(value ?? '')),
+      dropdownMenuEntries: entries,
+      label: const Text('Select subcolumn..'),
+      onSelected: (String? value) => setState(() {
+        selectedSubColumn = value ?? '';
+        columnWizardDialogBloc.add(ColumnWizardSelectColumnEvent(selectedColumn!, selectedSubColumn: selectedSubColumn));
+      }),
     );
   }
 

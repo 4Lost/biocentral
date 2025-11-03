@@ -16,7 +16,7 @@ abstract class NumColumnWizard extends ColumnWizard {
 
 class IntColumnWizardFactory extends ColumnWizardFactory {
   @override
-  ColumnWizard create({required String columnName, required Map<String, dynamic> valueMap, required BiocentralPythonCompanion companion}) {
+  ColumnWizard create({required String columnName, required Map<String, dynamic> valueMap, required Map<String, Map<String, dynamic>> allValues, required BiocentralPythonCompanion companion}) {
     return IntColumnWizard(
         columnName,
         Map.fromEntries(valueMap.entries.map(
@@ -41,7 +41,7 @@ class IntColumnWizard extends NumColumnWizard with NumericStats, CounterStats {
 
 class DoubleColumnWizardFactory extends ColumnWizardFactory {
   @override
-  ColumnWizard create({required String columnName, required Map<String, dynamic> valueMap, required BiocentralPythonCompanion companion}) {
+  ColumnWizard create({required String columnName, required Map<String, dynamic> valueMap, required Map<String, Map<String, dynamic>> allValues, required BiocentralPythonCompanion companion}) {
     return DoubleColumnWizard(
         columnName,
         Map.fromEntries(valueMap.entries.map((entry) =>
@@ -66,7 +66,7 @@ class DoubleColumnWizard extends NumColumnWizard with NumericStats, CounterStats
 
 class StringColumnWizardFactory extends ColumnWizardFactory {
   @override
-  ColumnWizard create({required String columnName, required Map<String, dynamic> valueMap, required BiocentralPythonCompanion companion}) {
+  ColumnWizard create({required String columnName, required Map<String, dynamic> valueMap, required Map<String, Map<String, dynamic>> allValues, required BiocentralPythonCompanion companion}) {
     return StringColumnWizard(
         columnName, Map.fromEntries(valueMap.entries.map((entry) => MapEntry(entry.key, entry.value.toString()))), companion);
   }

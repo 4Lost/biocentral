@@ -15,6 +15,7 @@ abstract class ColumnWizardFactory<T extends ColumnWizard> {
   T create(
       {required String columnName,
       required Map<String, dynamic> valueMap,
+      required Map<String, Map<String, dynamic>> allValues,
       required BiocentralPythonCompanion companion});
 
   TypeDetector getTypeDetector();
@@ -80,6 +81,8 @@ abstract class ColumnWizard {
   }
 
   Map<String, int>? _counts;
+
+  set selectedSubColumn(String? selectedSubColumn) {}
 
   Future<Map<String, int>> getCounts() async {
     if (_counts != null) {
