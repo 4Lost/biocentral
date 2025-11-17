@@ -108,18 +108,13 @@ class _LengthDistributionPainter extends CustomPainter {
     canvas.drawPath(kdePath, kdePaint);
 
     final Map<String, double> stats = data['length_stats']!;
-    highlightMeanAndStdDev(canvas, plotSize, plotOffset, stats['min']!, stats['max']!, stats['mean']!, stats['std_dev']!, false, leftCutoff, rightCutoff);
+    highlightMeanAndStdDev(canvas, plotSize, plotOffset, stats['min']!, stats['max']!, stats['mean']!, stats['std_dev']!, false);
 
     if (backgroundDist != null) {
       // Draw background KDE
       final Map<String, double> bgKdeData = backgroundDist!['length_kde']!;
-      final List<_Point> bgKdePoints = clampPointsToRange(bgKdeData.entries.map((entry) => _Point(double.parse(entry.key), entry.value)).toList(), leftCutoff, rightCutoff);
-
-      // Add clamped edge points to make sure the path ends exactly at the cutoff
-      final double? leftEdgeVal = bgKdeData[leftCutoff.toString()];
-      final double? rightEdgeVal = bgKdeData[rightCutoff.toString()];
-      if (leftEdgeVal != null) bgKdePoints.insert(0, _Point(leftCutoff, leftEdgeVal));
-      if (rightEdgeVal != null) bgKdePoints.add(_Point(rightCutoff, rightEdgeVal));
+      print(bgKdeData);
+      final List<_Point> bgKdePoints = bgKdeData.entries.map((entry) => _Point(double.parse(entry.key), entry.value)).toList();
 
       final Paint bgKdePaint = Paint()
         ..color = Colors.pink
@@ -145,7 +140,7 @@ class _LengthDistributionPainter extends CustomPainter {
       canvas.drawPath(bgKdePath, bgKdePaint);
 
       final Map<String, double> bgStats = backgroundDist!['length_stats']!;
-      highlightMeanAndStdDev(canvas, plotSize, plotOffset, bgStats['min']!, bgStats['max']!, bgStats['mean']!, bgStats['std_dev']!, true, leftCutoff, rightCutoff);
+      highlightMeanAndStdDev(canvas, plotSize, plotOffset, bgStats['min']!, bgStats['max']!, bgStats['mean']!, bgStats['std_dev']!, true);
     }
 
     // Draw axes
@@ -221,59 +216,45 @@ class _LengthDistributionPainter extends CustomPainter {
   
 
   void highlightMeanAndStdDev(Canvas canvas, Size plotSize, Offset plotOffset,
-      double minValue, double maxValue, double mean, double stdDev, bool isBackground, double leftCutoff, double rightCutoff) {
-    final Color color = !isBackground ? Colors.green : Colors.purple;
+      double minValue, double maxValue, double mean, double stdDev, bool isBackground) {
 
-    final Paint linePaint = Paint()
+    final Color color = !isBackground ? Colors.green : Colors.purple;
+    
+    final Paint meanPaint = Paint()
       ..color = color
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
 
-    // Clamp mean to cutoff
-    if (mean >= leftCutoff && mean <= rightCutoff) {
-      final double meanX = plotOffset.dx + (mean - leftCutoff) / (rightCutoff - leftCutoff) * plotSize.width;
-      canvas.drawLine(Offset(meanX, plotOffset.dy), Offset(meanX, plotOffset.dy + plotSize.height), linePaint);
+    final double meanX = plotOffset.dx + (mean - minValue) / (maxValue - minValue) * plotSize.width;
 
-      final TextPainter meanPainter = TextPainter(
-        text: TextSpan(text: 'Mean', style: TextStyle(color: color, fontSize: 12)),
-        textDirection: TextDirection.ltr,
-      );
-      meanPainter.layout();
-      meanPainter.paint(canvas, Offset(meanX - meanPainter.width / 2, plotOffset.dy - 15));
-    }
+    // Draw mean line
+    canvas.drawLine(Offset(meanX, plotOffset.dy), Offset(meanX, plotOffset.dy + plotSize.height), meanPaint);
 
-    // StdDev range
-    double leftStd = mean - stdDev;
-    double rightStd = mean + stdDev;
+    // Draw std deviation range
+    final double leftStdDevX =
+        plotOffset.dx + (mean - stdDev - minValue) / (maxValue - minValue) * plotSize.width;
+    final double rightStdDevX =
+        plotOffset.dx + (mean + stdDev - minValue) / (maxValue - minValue) * plotSize.width;
 
-    // If completely outside cutoff, do nothing
-    if (rightStd < leftCutoff || leftStd > rightCutoff) return;
+    canvas.drawLine(Offset(leftStdDevX, plotOffset.dy + plotSize.height),
+        Offset(rightStdDevX, plotOffset.dy + plotSize.height), meanPaint);
 
-    // Clamp to cutoff
-    final double clippedLeft = leftStd.clamp(leftCutoff, rightCutoff);
-    final double clippedRight = rightStd.clamp(leftCutoff, rightCutoff);
-
-    final double leftStdX = plotOffset.dx + (clippedLeft - leftCutoff) / (rightCutoff - leftCutoff) * plotSize.width;
-    final double rightStdX = plotOffset.dx + (clippedRight - leftCutoff) / (rightCutoff - leftCutoff) * plotSize.width;
-
-    // Draw stddev line
-    canvas.drawLine(
-      Offset(leftStdX, plotOffset.dy + plotSize.height),
-      Offset(rightStdX, plotOffset.dy + plotSize.height),
-      linePaint,
+    // Labels
+    final TextPainter meanPainter = TextPainter(
+      text: TextSpan(text: 'Mean', style: plotTextStyle.copyWith(color: color)),
+      textDirection: TextDirection.ltr,
     );
+    meanPainter.layout();
+    meanPainter.paint(canvas, Offset(meanX - meanPainter.width / 2, plotOffset.dy - 15));
 
-    // Draw stddev label centered
     final TextPainter stdDevPainter = TextPainter(
-      text: TextSpan(text: '±1 StdDev', style: TextStyle(color: color, fontSize: 12)),
+      text: TextSpan(text: '±1 StdDev', style: plotTextStyle.copyWith(color: color)),
       textDirection: TextDirection.ltr,
     );
     stdDevPainter.layout();
-    stdDevPainter.paint(
-      canvas,
-      Offset((leftStdX + rightStdX) / 2 - stdDevPainter.width / 2,
-            plotOffset.dy + plotSize.height - 15),
-    );
+    stdDevPainter.paint(canvas,
+        Offset((leftStdDevX + rightStdDevX) / 2 - stdDevPainter.width / 2,
+            plotOffset.dy + plotSize.height - 15));
   }
 
   void drawLegend(Canvas canvas, Size size) {
@@ -303,40 +284,6 @@ class _LengthDistributionPainter extends CustomPainter {
       legendY += boxSize + spacing + 4;
     }
   }
-
-  List<_Point> clampPointsToRange(List<_Point> points, double leftCutoff, double rightCutoff) {
-  final List<_Point> inside = points.where((p) => p.x >= leftCutoff && p.x <= rightCutoff).toList();
-
-  // Find interpolation neighbors for left and right edges
-  final _Point leftNeighbor =
-      points.lastWhere((p) => p.x < leftCutoff, orElse: () => points.first);
-  final _Point rightNeighbor =
-      points.firstWhere((p) => p.x > rightCutoff, orElse: () => points.last);
-
-  // Add interpolated left edge if needed
-  if (inside.isEmpty || inside.first.x > leftCutoff) {
-    final _Point next = inside.isNotEmpty ? inside.first : rightNeighbor;
-    final _Point prev = leftNeighbor;
-    if (next.x != prev.x) {
-      final double t = (leftCutoff - prev.x) / (next.x - prev.x);
-      final double y = prev.y + t * (next.y - prev.y);
-      inside.insert(0, _Point(leftCutoff, y));
-    }
-  }
-
-  // Add interpolated right edge if needed
-  if (inside.isEmpty || inside.last.x < rightCutoff) {
-    final _Point prev = inside.isNotEmpty ? inside.last : leftNeighbor;
-    final _Point next = rightNeighbor;
-    if (next.x != prev.x) {
-      final double t = (rightCutoff - prev.x) / (next.x - prev.x);
-      final double y = prev.y + t * (next.y - prev.y);
-      inside.add(_Point(rightCutoff, y));
-    }
-  }
-
-  return inside;
-}
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;

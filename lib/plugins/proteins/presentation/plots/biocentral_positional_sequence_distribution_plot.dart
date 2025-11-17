@@ -20,10 +20,6 @@ class _PositionalDistributionPlotState
     extends State<BiocentralPositionalSequenceDistributionPlot> {
   Map<int, Map<String, double>>? backgroundDist;
 
-  // Scroll state
-  int _windowStart = 0;
-  final int _windowSize = 5;
-
   @override
   void initState() {
     super.initState();
@@ -43,47 +39,16 @@ class _PositionalDistributionPlotState
     if (widget.showBackground && backgroundDist == null) {
       return const Center(child: CircularProgressIndicator());
     }
-
-    final int totalPositions = widget.distribution.keys.length;
-
-    return Column(
-      children: [
-        Expanded (
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return CustomPaint(
-                size: Size(constraints.maxWidth, constraints.maxHeight),
-                painter: _PositionalDistributionPainter(
-                  widget.distribution,
-                  widget.showBackground ? backgroundDist : null,
-                  startPos: _windowStart,
-                  windowSize: _windowSize,
-                ),
-              );
-            },
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return CustomPaint(
+          size: Size(constraints.maxWidth, constraints.maxHeight),
+          painter: _PositionalDistributionPainter(
+            widget.distribution,
+            widget.showBackground ? backgroundDist : null,
           ),
-        ),
-        const SizedBox(height: 12,),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
-              onPressed: _windowStart > 0
-                  ? () => setState(() => _windowStart -= _windowSize)
-                  : null,
-              child: const Text('Previous'),
-            ),
-            const SizedBox(width: 16),
-            ElevatedButton(
-              onPressed: _windowStart + _windowSize < totalPositions
-                  ? () => setState(() => _windowStart += _windowSize)
-                  : null,
-              child: const Text('Next'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-      ],
+        );
+      },
     );
   }
 }
@@ -91,13 +56,11 @@ class _PositionalDistributionPlotState
 class _PositionalDistributionPainter extends CustomPainter {
   final Map<int, Map<String, int>> data;
   final Map<int, Map<String, double>>? backgroundDist;
-  final int startPos;
-  final int windowSize;
   final TextStyle plotTextStyle =
       const TextStyle(color: Colors.black, fontSize: 12);
 
   _PositionalDistributionPainter(
-      this.data, this.backgroundDist, {required this.startPos, required this.windowSize,});
+      this.data, this.backgroundDist);
 
   static final Map<String, Color> aminoColors = {
     'A': Colors.blue,
@@ -136,9 +99,8 @@ class _PositionalDistributionPainter extends CustomPainter {
     );
 
     final int nPositions = data.keys.length;
-    final int endPos = (startPos + windowSize).clamp(0, nPositions);
     final int barGroups = backgroundDist == null ? 1 : 2;
-    final double groupWidth = plotSize.width / (endPos - startPos);
+    final double groupWidth = plotSize.width / nPositions;
     final double barWidth = groupWidth / (barGroups + 0.5);
 
     final Paint borderPaint = Paint()
@@ -179,22 +141,22 @@ class _PositionalDistributionPainter extends CustomPainter {
     }
 
     // X-axis labels step
-    final int labelStep = ((endPos - startPos) / 10).ceil().clamp(1, windowSize);
+    final int labelStep = (nPositions / 10).ceil().clamp(1, nPositions);
 
     // Bars
-    for (int pos = startPos; pos < endPos; pos++) {
-      final double groupX = plotOffset.dx + (pos - startPos) * groupWidth;
+    for (int pos = 0; pos < nPositions; pos++) {
+      final double groupX = plotOffset.dx + pos * groupWidth;
 
       final dist = data[pos];
       if (dist != null) {
         _drawStackedBar(canvas, groupX, plotOffset.dy + plotSize.height,
-            barWidth, plotSize.height, dist.map((k, v) => MapEntry(k, v.toDouble())), false);
+            barWidth, plotSize.height, dist.map((k, v) => MapEntry(k, v.toDouble())),);
       }
 
-      if (backgroundDist != null && backgroundDist![pos] != null) { // TODO: correct after background data is correct
+      if (backgroundDist != null && backgroundDist![pos] != null) {
         final double barX = groupX + barWidth;
         _drawStackedBar(canvas, barX, plotOffset.dy + plotSize.height,
-            barWidth, plotSize.height, backgroundDist![pos]!, true); // TODO: correct after background data is correct
+            barWidth, plotSize.height, backgroundDist![pos]!);
       }
 
       // Only draw 10 labels
@@ -206,8 +168,8 @@ class _PositionalDistributionPainter extends CustomPainter {
         tp.layout();
         tp.paint(
             canvas,
-            Offset(groupX + (barGroups * barWidth) / 2 - tp.width / 2, plotOffset.dy + plotSize.height + 5,),
-        );
+            Offset(groupX + groupWidth / 2 - tp.width / 2,
+                plotOffset.dy + plotSize.height + 5));
       }
     }
 
@@ -215,7 +177,7 @@ class _PositionalDistributionPainter extends CustomPainter {
   }
 
   void _drawStackedBar(Canvas canvas, double barX, double yBottom,
-      double barWidth, double totalHeight, Map<String, double> dist, bool isBackground) {
+      double barWidth, double totalHeight, Map<String, double> dist) {
     final double sum = dist.values.fold(0.0, (a, b) => a + b);
     final Map<String, double> normalized =
         sum == 0 ? dist : dist.map((k, v) => MapEntry(k, (v / sum) * 100));
@@ -226,7 +188,7 @@ class _PositionalDistributionPainter extends CustomPainter {
       final double h = perc / 100 * totalHeight;
 
       final rect = Rect.fromLTWH(barX, yBottom - h, barWidth, h);
-      final paint = Paint()..color = isBackground ? (aminoColors[aa]  ?? Colors.grey).withOpacity(0.3) : aminoColors[aa] ?? Colors.grey;
+      final paint = Paint()..color = aminoColors[aa] ?? Colors.grey;
       canvas.drawRect(rect, paint);
       yBottom -= h;
     }
@@ -240,29 +202,20 @@ class _PositionalDistributionPainter extends CustomPainter {
 
     final sortedKeys = aminoColors.keys.toList()..sort();
     for (final aa in sortedKeys) {
-      canvas.drawRect(Rect.fromLTWH(legendX, legendY, boxSize, boxSize), Paint()..color = aminoColors[aa]!);
-      if (backgroundDist != null) {
-        canvas.drawRect(Rect.fromLTWH(legendX + boxSize + spacing, legendY, boxSize, boxSize), Paint()..color = aminoColors[aa]!.withOpacity(0.3));
-      }
+      final paint = Paint()..color = aminoColors[aa]!;
+      canvas.drawRect(Rect.fromLTWH(legendX, legendY, boxSize, boxSize), paint);
 
       final tp = TextPainter(
         text: TextSpan(text: aa, style: plotTextStyle),
         textDirection: TextDirection.ltr,
       );
       tp.layout();
-
-      double textOffsetX = legendX + boxSize + spacing + (backgroundDist != null ? boxSize + spacing : 0);
-      tp.paint(canvas, Offset(textOffsetX, legendY - 2));
+      tp.paint(canvas, Offset(legendX + boxSize + spacing, legendY - 2));
 
       legendY += boxSize + spacing;
     }
   }
 
   @override
-  bool shouldRepaint(covariant _PositionalDistributionPainter oldDelegate) {
-    return oldDelegate.startPos != startPos ||
-          oldDelegate.windowSize != windowSize ||
-          oldDelegate.data != data ||
-          oldDelegate.backgroundDist != backgroundDist;
-  }
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

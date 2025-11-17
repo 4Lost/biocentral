@@ -36,12 +36,12 @@ class _ProteinInsightsViewState extends State<ProteinInsightsView> {
     return BiocentralDropdownMenu<String>(
       dropdownMenuEntries: state.columns.keys.map((key) => DropdownMenuEntry(value: key, label: key)).toList(),
       label: const Text('Select column..'),
-      onSelected: (String? value) => columnWizardDialogBloc.add(ColumnWizardSelectColumnEvent(value ?? '')),
+      onSelected: (String? value) => columnWizardDialogBloc.add(ColumnWizardSelectColumnEvent([value ?? ''])),
     );
   }
 
   Widget buildColumnWizardDisplay(ColumnWizardBlocState state) {
-    final ColumnWizard? columnWizard = state.columnWizards?[state.selectedColumn];
+    final ColumnWizard? columnWizard = state.columnWizards?[state.selectedColumns];
 
     if (columnWizard == null) {
       return Container();

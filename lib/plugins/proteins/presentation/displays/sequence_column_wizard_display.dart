@@ -18,7 +18,6 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
   bool lenDistCompare = false;
   bool protDistCompare = false;
   bool posProtDistCompare = false;
-  int index = 0;
 
   @override
   void initState() {
@@ -27,14 +26,6 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
 
   @override
   Widget build(BuildContext context) {
-    if (true) {//widget.columnWizard.subsectionSelected()) {
-      return buildMultiple(context);
-    } else {
-      return buildSingle(context);
-    }
-  }
-
-  Widget buildSingle(BuildContext context) {
     return FutureBuilder<({
       Map<String, Map<String, double>> lenDistribution,
       Map<String, double> seqDistribution,
@@ -97,113 +88,6 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
           ],
         );
       }
-    );
-  }
-
-  Widget buildMultiple(BuildContext context) {
-    return FutureBuilder<List<({
-      Map<String, Map<String, double>> lenDistribution,
-      Map<String, double> seqDistribution,
-      Map<int, Map<String, int>> posSeqDistribution,
-    })>>(
-      future: widget.columnWizard.distributionByColumn(),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const CircularProgressIndicator();
-        }
-        final isFirst = index == 0;
-        final isLast = index == widget.columnWizard.getColumnAmount('test') - 1;
-        return Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_left),
-                  color: isFirst ? Colors.grey : Colors.blue,
-                  onPressed: isFirst ? null : () => setState(() => index--),
-                ),
-                Text('${index + 1}/${snapshot.data!.length}'),
-                IconButton(
-                  icon: const Icon(Icons.arrow_right),
-                  color: isLast ? Colors.grey : Colors.blue,
-                  onPressed: isLast ? null : () => setState(() => index++),
-                ),
-              ],
-            ),
-            Expanded(
-              child: Center(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  child: buildMultipleSub(snapshot.data![index]),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-        
-  Widget buildMultipleSub(({
-      Map<String, Map<String, double>> lenDistribution,
-      Map<String, double> seqDistribution,
-      Map<int, Map<String, int>> posSeqDistribution,
-    }) data) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        buildSequenceStats(),
-        SizedBox(
-          width: SizeConfig.safeBlockHorizontal(context) * 5,
-        ),
-        const Text('Length Distribution\n'),
-        SizedBox(
-          height: SizeConfig.safeBlockHorizontal(context) * 3,
-          width: SizeConfig.safeBlockHorizontal(context) * 8,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).primaryColor, textStyle: Theme.of(context).textTheme.labelMedium,
-            ),
-            onPressed: () => setState(() {
-              lenDistCompare = !lenDistCompare;
-            }),
-            child: const Text('Toggle Comparison', style: TextStyle(color: Colors.white)),
-          ),
-        ),
-        buildLengthCompositionPlot(data.lenDistribution),
-        const Text('Protein Distribution\n'),
-        SizedBox(
-          height: SizeConfig.safeBlockHorizontal(context) * 3,
-          width: SizeConfig.safeBlockHorizontal(context) * 8,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).primaryColor, textStyle: Theme.of(context).textTheme.labelMedium,
-            ),
-            onPressed: () => setState(() {
-              protDistCompare = !protDistCompare;
-            }),
-            child: const Text('Toggle Comparison', style: TextStyle(color: Colors.white)),
-          ),
-        ),
-        buildCompositionPlot(data.seqDistribution),
-        const Text('Positional Protein Distribution\n'),
-        SizedBox(
-          height: SizeConfig.safeBlockHorizontal(context) * 3,
-          width: SizeConfig.safeBlockHorizontal(context) * 8,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).primaryColor, textStyle: Theme.of(context).textTheme.labelMedium,
-            ),
-            onPressed: () => setState(() {
-              posProtDistCompare = !posProtDistCompare;
-            }),
-            child: const Text('Toggle Comparison', style: TextStyle(color: Colors.white)),
-          ),
-        ),
-        buildPositionalCompositionPlot(data.posSeqDistribution),
-      ],
     );
   }
   

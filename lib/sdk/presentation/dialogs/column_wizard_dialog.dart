@@ -21,8 +21,7 @@ class ColumnWizardDialog extends StatefulWidget {
 }
 
 class _ColumnWizardDialogState extends State<ColumnWizardDialog> with AutomaticKeepAliveClientMixin {
-  String? selectedColumn;
-  String? selectedSubColumn;
+  List<String> selectedColumns = [''];
 
   void closeDialog() {
     Navigator.of(context).pop();
@@ -51,13 +50,10 @@ class _ColumnWizardDialogState extends State<ColumnWizardDialog> with AutomaticK
         Text(
           'Column Wizard',
           style: Theme.of(context).textTheme.headlineLarge,
-        ),
-        buildColumnSelection(columnWizardDialogBloc, state),
-        if (state.selectedColumn != null && state.selectedColumn!.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0), // left & right padding
-            child: buildColumnSubselection(columnWizardDialogBloc, state),
-          ),
+        ) as Widget,
+      ]
+      + buildColumnSelections(columnWizardDialogBloc, state) +
+      [
         buildColumnWizardDisplay(state),
         buildColumnWizardOperationSelection(columnWizardDialogBloc, state),
         buildColumnWizardOperationDisplay(state),
@@ -66,34 +62,38 @@ class _ColumnWizardDialogState extends State<ColumnWizardDialog> with AutomaticK
     );
   }
 
-  Widget buildColumnSelection(ColumnWizardBloc columnWizardDialogBloc, ColumnWizardBlocState state) {
-    return BiocentralDropdownMenu<String>(
-      dropdownMenuEntries: state.columns.keys.map((key) => DropdownMenuEntry(value: key, label: key)).toList(),
-      label: const Text('Select column..'),
-      initialSelection: widget.initialSelectedColumn,
-      onSelected: (String? value) => {
-        selectedColumn = value ?? '',
-        columnWizardDialogBloc.add(ColumnWizardSelectColumnEvent(selectedColumn!)),
-      }
-    );
-  }
+  List<Widget> buildColumnSelections(ColumnWizardBloc columnWizardDialogBloc, ColumnWizardBlocState state) {
+    final List<Widget> columnSelectors = [];
+    final List<String> usedColumns = [];
+    int lowestEmpty = selectedColumns.indexOf('');
+    if (lowestEmpty == -1) lowestEmpty = selectedColumns.length;
 
-  Widget buildColumnSubselection(ColumnWizardBloc columnWizardDialogBloc, ColumnWizardBlocState state) {
-    final Iterable<String> keys = (Map.of(state.columns)..removeWhere((key, value) => key == selectedColumn || value.keys.length > 10)).keys;
-    final List<DropdownMenuEntry<String>> entries = keys.map((key) => DropdownMenuEntry(value: key, label: key)).toList();
+    for (int i = 0; i <= lowestEmpty; i++) {
+      if (i < lowestEmpty && !usedColumns.contains(selectedColumns[i])) usedColumns.add(selectedColumns[i]);
 
-    return BiocentralDropdownMenu<String>(
-      dropdownMenuEntries: entries,
-      label: const Text('Select subcolumn..'),
-      onSelected: (String? value) => setState(() {
-        selectedSubColumn = value ?? '';
-        columnWizardDialogBloc.add(ColumnWizardSelectColumnEvent(selectedColumn!, selectedSubColumn: selectedSubColumn));
-      }),
-    );
+      final Iterable<String> keys = (Map.of(state.columns)..removeWhere((key, value) => usedColumns.contains(key) || value.keys.length > 10)).keys;
+      final List<DropdownMenuEntry<String>> entries = keys.map((key) => DropdownMenuEntry(value: key, label: key)).toList();
+      if (selectedColumns.length <= i) selectedColumns.add('');
+
+      columnSelectors.add(Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12.0) * (i as double),
+        child: BiocentralDropdownMenu<String>(
+          dropdownMenuEntries: entries,
+          label: const Text('Select column..'),
+          initialSelection: selectedColumns[i],
+          onSelected: (String? value) => {
+            selectedColumns[i] = value ?? '',
+            columnWizardDialogBloc.add(ColumnWizardSelectColumnEvent(List.from(selectedColumns)))
+          },
+        ),
+      ),);
+    }
+    
+    return columnSelectors;
   }
 
   Widget buildColumnWizardDisplay(ColumnWizardBlocState state) {
-    final ColumnWizard? columnWizard = state.columnWizards?[state.selectedColumn];
+    final ColumnWizard? columnWizard = state.columnWizards?[state.selectedColumns];//Todo fix for multiple columns
 
     if (columnWizard == null) {
       return Container();
@@ -130,7 +130,7 @@ class _ColumnWizardDialogState extends State<ColumnWizardDialog> with AutomaticK
     }
     return ColumnWizardOperationDisplayFactory.fromSelected(
       columnOperationType: state.selectedOperationType!,
-      selectedColumnName: state.selectedColumn!,
+      selectedColumnName: state.selectedColumns[0], //Todo fix for multiple columns
       onCalculateCallback: (ColumnWizardOperation operation) => onCalculate(state, operation),
     );
   }
