@@ -165,7 +165,6 @@ class EmbeddingsHubBloc extends Bloc<EmbeddingsHubEvent, EmbeddingsHubState> {
             await _biocentralColumnWizardRepository.getColumnWizardForColumn<EmbeddingsColumnWizard>(
           columnName: 'embeddings',
           valueMap: _biocentralDatabaseRepository.getFromType(event.entityType!)?.getAllEmbeddings() ?? {},
-          allValues: {},
           columnType: EmbeddingManager,
         );
 
@@ -202,7 +201,6 @@ class EmbeddingsHubBloc extends Bloc<EmbeddingsHubEvent, EmbeddingsHubState> {
             await _biocentralColumnWizardRepository.getColumnWizardForColumn<EmbeddingsColumnWizard>(
           columnName: 'embeddings',
           valueMap: _biocentralDatabaseRepository.getFromType(state.selectedEntityType!)?.getAllEmbeddings() ?? {},
-          allValues: {},
           columnType: EmbeddingManager,
         );
 

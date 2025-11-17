@@ -55,7 +55,6 @@ class BiocentralBackgroundData {
       );
 
       parsed[pos] = dist;
-    } else if (pos < 30) {
     }
   });
 
