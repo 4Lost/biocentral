@@ -212,10 +212,10 @@ abstract class BiocentralDatabase<T extends BioEntity> with AutoSaving {
     }
   }
 
-  Future<Map<String, T>> handleColumnWizardOperationResult(ColumnWizardOperationResult? operationResult) async {
+  Future<Map<String, T>> handleColumnWizardOperationResult(ColumnWizardOperationResult? operationResult) async { //TODO check how this should be handled with multiple columns
     if (operationResult is ColumnWizardAddOperationResult) {
       // TODO ERROR HANDLING
-      final String newColumnName = operationResult.newColumnName;
+      final String newColumnName = operationResult.newColumnNames[0];
       final Map<String, dynamic> newValues = operationResult.newColumnValues;
       final Map<String, String> attributeMap =
           Map.fromEntries(newValues.entries.map((entry) => MapEntry(entry.key, entry.value.toString())));

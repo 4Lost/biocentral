@@ -12,9 +12,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 class ColumnWizardDialog extends StatefulWidget {
   final void Function(ColumnWizard columnWizard, ColumnWizardOperation columnWizardOperation) onCalculateColumn;
 
-  final String? initialSelectedColumn;
+  final List<String>? initialSelectedColumns;
 
-  const ColumnWizardDialog({required this.onCalculateColumn, required this.initialSelectedColumn, super.key});
+  const ColumnWizardDialog({required this.onCalculateColumn, required this.initialSelectedColumns, super.key});
 
   @override
   State<ColumnWizardDialog> createState() => _ColumnWizardDialogState();
@@ -69,10 +69,12 @@ class _ColumnWizardDialogState extends State<ColumnWizardDialog> with AutomaticK
     if (lowestEmpty == -1) lowestEmpty = selectedColumns.length;
 
     for (int i = 0; i <= lowestEmpty; i++) {
-      if (i < lowestEmpty && !usedColumns.contains(selectedColumns[i])) usedColumns.add(selectedColumns[i]);
-
       final Iterable<String> keys = (Map.of(state.columns)..removeWhere((key, value) => usedColumns.contains(key) || value.keys.length > 10)).keys;
+      if (keys.isEmpty) continue;
+
       final List<DropdownMenuEntry<String>> entries = keys.map((key) => DropdownMenuEntry(value: key, label: key)).toList();
+
+      if (i < lowestEmpty && !usedColumns.contains(selectedColumns[i])) usedColumns.add(selectedColumns[i]);
       if (selectedColumns.length <= i) selectedColumns.add('');
 
       columnSelectors.add(Padding(
@@ -83,7 +85,7 @@ class _ColumnWizardDialogState extends State<ColumnWizardDialog> with AutomaticK
           initialSelection: selectedColumns[i],
           onSelected: (String? value) => {
             selectedColumns[i] = value ?? '',
-            columnWizardDialogBloc.add(ColumnWizardSelectColumnEvent(List.from(selectedColumns)))
+            columnWizardDialogBloc.add(ColumnWizardSelectColumnEvent(List.from(selectedColumns))),
           },
         ),
       ),);
@@ -130,7 +132,7 @@ class _ColumnWizardDialogState extends State<ColumnWizardDialog> with AutomaticK
     }
     return ColumnWizardOperationDisplayFactory.fromSelected(
       columnOperationType: state.selectedOperationType!,
-      selectedColumnName: state.selectedColumns[0], //Todo fix for multiple columns
+      selectedColumnNames: state.selectedColumns,
       onCalculateCallback: (ColumnWizardOperation operation) => onCalculate(state, operation),
     );
   }

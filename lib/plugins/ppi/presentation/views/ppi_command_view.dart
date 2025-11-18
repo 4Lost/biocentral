@@ -93,7 +93,7 @@ class _PPICommandViewState extends State<PPICommandView> with AutomaticKeepAlive
     );
   }
 
-  void openColumnWizardDialog(PPICommandBloc interactionsCommandBloc, String? initialSelectedColumn) {
+  void openColumnWizardDialog(PPICommandBloc interactionsCommandBloc, List<String>? initialSelectedColumns) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -107,7 +107,7 @@ class _PPICommandViewState extends State<PPICommandView> with AutomaticKeepAlive
                 PPICommandColumnWizardOperationEvent(columnWizard, columnWizardOperation),
               );
             },
-            initialSelectedColumn: initialSelectedColumn,
+            initialSelectedColumns: initialSelectedColumns,
           ),
         );
       },
@@ -156,7 +156,7 @@ class _PPICommandViewState extends State<PPICommandView> with AutomaticKeepAlive
     // TODO [Refactoring] Duplicated in every command view that uses column wizard dialogs
     return BlocEffectListener<PPICommandBloc, ReOpenColumnWizardEffect>(
       listener: (context, effect) {
-        openColumnWizardDialog(ppiCommandBloc, effect.column);
+        openColumnWizardDialog(ppiCommandBloc, effect.columns);
       },
       child: BlocBuilder<PPICommandBloc, PPICommandState>(
         builder: (context, state) => BiocentralCommandBar(

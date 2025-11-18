@@ -6,8 +6,8 @@ import 'package:biocentral/sdk/data/biocentral_python_companion.dart';
 
 class SequenceColumnWizardFactory extends ColumnWizardFactory {
   @override
-  ColumnWizard create({required String columnName, required Map<String, dynamic> valueMap, required BiocentralPythonCompanion companion}) {
-    return SequenceColumnWizard(columnName, valueMap.map((k, v) => MapEntry(k, v as Sequence)), companion);
+  ColumnWizard create({required List<String> columnNames, required Map<String, dynamic> valueMap, required BiocentralPythonCompanion companion}) {
+    return SequenceColumnWizard(columnNames, valueMap.map((k, v) => MapEntry(k, v as Sequence)), companion);
   }
 
   @override
@@ -23,7 +23,7 @@ class SequenceColumnWizard extends ColumnWizard with CounterStats {
   @override
   Type get type => Sequence;
 
-  SequenceColumnWizard(super.columnName, this.valueMap, super.companion);
+  SequenceColumnWizard(super.columnNames, this.valueMap, super.companion);
 
   Map<String, double>? _composition;
 
