@@ -13,7 +13,7 @@ import 'package:ml_linalg/vector.dart';
 
 abstract class ColumnWizardFactory<T extends ColumnWizard> {
   T create(
-      {required String columnName,
+      {required List<String> columnNames,
       required Map<String, dynamic> valueMap,
       required BiocentralPythonCompanion companion});
 
@@ -37,12 +37,12 @@ final class TypeDetector {
 }
 
 abstract class ColumnWizard {
-  final String columnName;
+  final List<String> columnNames;
   final BiocentralPythonCompanion companion;
 
   Map<String, dynamic> get valueMap;
 
-  ColumnWizard(this.columnName, this.companion);
+  ColumnWizard(this.columnNames, this.companion);
 
   Type get type => valueMap.values.firstOrNull.runtimeType;
 
@@ -266,7 +266,7 @@ mixin NumericStats on ColumnWizard {
 mixin CounterStats on ColumnWizard {}
 
 class ReOpenColumnWizardEffect {
-  final String column;
+  final List<String> columns;
 
-  ReOpenColumnWizardEffect(this.column);
+  ReOpenColumnWizardEffect(this.columns);
 }

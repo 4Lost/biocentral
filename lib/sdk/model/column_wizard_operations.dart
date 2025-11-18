@@ -4,9 +4,9 @@ import 'package:biocentral/sdk/model/column_wizard_abstract.dart';
 import 'package:flutter/material.dart';
 
 abstract class ColumnWizardOperation<T extends ColumnWizardOperationResult> {
-  final String newColumnName;
+  final List<String> newColumnNames;
 
-  ColumnWizardOperation(this.newColumnName);
+  ColumnWizardOperation(this.newColumnNames);
 
   Future<T> operate(ColumnWizard columnWizard);
 }
@@ -14,10 +14,10 @@ abstract class ColumnWizardOperation<T extends ColumnWizardOperationResult> {
 abstract class ColumnWizardOperationResult {}
 
 class ColumnWizardAddOperationResult extends ColumnWizardOperationResult {
-  final String newColumnName;
+  final List<String> newColumnNames;
   final Map<String, dynamic> newColumnValues;
 
-  ColumnWizardAddOperationResult(this.newColumnName, this.newColumnValues);
+  ColumnWizardAddOperationResult(this.newColumnNames, this.newColumnValues);
 }
 
 class ColumnWizardRemoveOperationResult extends ColumnWizardOperationResult {
@@ -31,7 +31,7 @@ class ColumnWizardShuffleOperation extends ColumnWizardOperation<ColumnWizardAdd
 
   final int seed;
 
-  ColumnWizardShuffleOperation(super.newColumnName, this.seed);
+  ColumnWizardShuffleOperation(super.newColumnNames, this.seed);
 
   @override
   Future<ColumnWizardAddOperationResult> operate(ColumnWizard columnWizard) async {
@@ -40,7 +40,7 @@ class ColumnWizardShuffleOperation extends ColumnWizardOperation<ColumnWizardAdd
       final List<String> shuffled = entry.value.toString().characters.toList()..shuffle(Random(seed));
       result[entry.key] = shuffled.join();
     }
-    return ColumnWizardAddOperationResult(newColumnName, result);
+    return ColumnWizardAddOperationResult(newColumnNames, result);
   }
 }
 
@@ -61,7 +61,7 @@ class ColumnWizardToBinaryOperation extends ColumnWizardOperation<ColumnWizardAd
     for (final entry in columnWizard.valueMap.entries) {
       result[entry.key] = entry.value.toString() == compareToValue ? valueTrue : valueFalse;
     }
-    return ColumnWizardAddOperationResult(newColumnName, result);
+    return ColumnWizardAddOperationResult(newColumnNames, result);
   }
 }
 
@@ -145,7 +145,7 @@ class ColumnWizardCalculateLengthOperation extends ColumnWizardOperation<ColumnW
     final Map<String, int> result = Map.fromEntries(
         columnWizard.valueMap.entries.map((entry) => MapEntry(entry.key, entry.value.toString().length)));
 
-    return ColumnWizardAddOperationResult(newColumnName, result);
+    return ColumnWizardAddOperationResult(newColumnNames, result);
   }
 }
 

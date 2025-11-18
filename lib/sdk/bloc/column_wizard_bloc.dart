@@ -91,7 +91,7 @@ class ColumnWizardBloc extends Bloc<ColumnWizardEvent, ColumnWizardBlocState> {
       ColumnWizard? columnWizard = columnWizards[event.selectedColumns];
       if (columnWizard == null) {
         columnWizard = await _columnWizardRepository.getColumnWizardForColumn(
-          columnName: event.selectedColumns[0],
+          columnNames: event.selectedColumns,
           valueMap: getValueMap(event),
         );
         columnWizards[event.selectedColumns] = columnWizard;

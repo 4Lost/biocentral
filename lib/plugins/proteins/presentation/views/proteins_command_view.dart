@@ -66,7 +66,7 @@ class _ProteinsCommandViewState extends State<ProteinsCommandView> {
     proteinCommandBloc.add(ProteinsCommandSaveToFileEvent(outputPath));
   }
 
-  void openColumnWizardDialog(ProteinsCommandBloc proteinCommandBloc, String? initialSelectedColumn) {
+  void openColumnWizardDialog(ProteinsCommandBloc proteinCommandBloc, List<String>? initialSelectedColumns) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -79,7 +79,7 @@ class _ProteinsCommandViewState extends State<ProteinsCommandView> {
             onCalculateColumn: (columnWizard, columnWizardOperation) {
               proteinCommandBloc.add(ProteinsCommandColumnWizardOperationEvent(columnWizard, columnWizardOperation));
             },
-            initialSelectedColumn: initialSelectedColumn,
+            initialSelectedColumns: initialSelectedColumns,
           ),
         );
       },
@@ -112,7 +112,7 @@ class _ProteinsCommandViewState extends State<ProteinsCommandView> {
 
     return BlocEffectListener<ProteinsCommandBloc, ReOpenColumnWizardEffect>(
       listener: (context, effect) {
-        openColumnWizardDialog(proteinCommandBloc, effect.column);
+        openColumnWizardDialog(proteinCommandBloc, effect.columns);
       },
       child: BlocBuilder<ProteinsCommandBloc, ProteinsCommandState>(
         builder: (context, state) => BiocentralCommandBar(

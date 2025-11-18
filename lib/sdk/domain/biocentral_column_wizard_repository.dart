@@ -35,13 +35,13 @@ class BiocentralColumnWizardRepository {
   }
 
   Future<T> getColumnWizardForColumn<T extends ColumnWizard>({
-    required String columnName,
+    required List<String> columnNames,
     required Map<String, dynamic> valueMap,
     Type? columnType,
   }) async {
     columnType ??= await _detectColumnType(valueMap.values);
     if (_factories.containsKey(columnType)) {
-      final columnWizard = _factories[columnType]!.create(columnName: columnName, valueMap: valueMap, companion: companion) as T;
+      final columnWizard = _factories[columnType]!.create(columnNames: columnNames, valueMap: valueMap, companion: companion) as T;
       return columnWizard;
     }
     // TODO Exception handling

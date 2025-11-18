@@ -144,10 +144,10 @@ class ProteinsCommandBloc extends BiocentralBloc<ProteinsCommandEvent, ProteinsC
           syncWithDatabases(entityMap);
         });
       });
-      final reOpenColumn = event.columnWizardOperation.newColumnName.isEmpty
-          ? event.columnWizard.columnName
-          : event.columnWizardOperation.newColumnName;
-      emitEffect(ReOpenColumnWizardEffect(reOpenColumn));
+      final reOpenColumns = event.columnWizardOperation.newColumnNames.isEmpty
+          ? event.columnWizard.columnNames
+          : event.columnWizardOperation.newColumnNames;
+      emitEffect(ReOpenColumnWizardEffect(reOpenColumns));
     });
   }
 }

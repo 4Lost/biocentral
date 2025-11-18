@@ -24,8 +24,8 @@ final class ColumnWizardOperationCommand extends BiocentralCommand<ColumnWizardO
   }
 
   @override
-  Map<String, dynamic> getConfigMap() {
-    return {'originalColumnName': _columnWizard.columnName, 'newColumnName': _columnWizardOperation.newColumnName};
+  Map<String, dynamic> getConfigMap() { //TODO check how this should be handled with multiple columns
+    return {'originalColumnName': _columnWizard.columnNames[0], 'newColumnName': _columnWizardOperation.newColumnNames[0]};
   }
 
   @override

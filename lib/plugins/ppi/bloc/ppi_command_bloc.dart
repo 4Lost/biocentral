@@ -160,9 +160,9 @@ class PPICommandBloc extends BiocentralBloc<PPICommandEvent, PPICommandState>
           syncWithDatabases(entityMap);
         });
       });
-      final reOpenColumn = event.columnWizardOperation.newColumnName.isEmpty
-          ? event.columnWizard.columnName
-          : event.columnWizardOperation.newColumnName;
+      final reOpenColumn = event.columnWizardOperation.newColumnNames.isEmpty
+          ? event.columnWizard.columnNames
+          : event.columnWizardOperation.newColumnNames;
       emitEffect(ReOpenColumnWizardEffect(reOpenColumn));
     });
   }
