@@ -2,13 +2,13 @@ import 'package:biocentral/sdk/data/biocentral_background_data.dart';
 import 'package:flutter/material.dart';
 
 class BiocentralPositionalSequenceDistributionPlot extends StatefulWidget {
-  final Map<int, Map<String, int>> distribution;
-  final bool showBackground;
+  final List<Map<int, Map<String, double>>> distributions;
+  final bool showSecond;
 
   const BiocentralPositionalSequenceDistributionPlot({
-    required this.distribution,
+    required this.distributions,
     super.key,
-    this.showBackground = false,
+    this.showSecond = true,
   });
 
   @override
@@ -16,36 +16,32 @@ class BiocentralPositionalSequenceDistributionPlot extends StatefulWidget {
       _PositionalDistributionPlotState();
 }
 
-class _PositionalDistributionPlotState
-    extends State<BiocentralPositionalSequenceDistributionPlot> {
-  Map<int, Map<String, double>>? backgroundDist;
+class _PositionalDistributionPlotState extends State<BiocentralPositionalSequenceDistributionPlot> {
+  late List<Map<int, Map<String, double>>> _distributions;
 
   @override
   void initState() {
+    _distributions = List.from(widget.distributions);
+    if (widget.distributions.length < 2) _loadData();
     super.initState();
-    _loadData();
   }
 
   Future<void> _loadData() async {
-    final data =
-        await BiocentralBackgroundData.getAAPositionalSequenceDistribution(widget.distribution.keys);
+    final data = await BiocentralBackgroundData.getAAPositionalSequenceDistribution(widget.distributions[0].keys);
     setState(() {
-      backgroundDist = data;
+      _distributions.add(data);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (widget.showBackground && backgroundDist == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
     return LayoutBuilder(
       builder: (context, constraints) {
         return CustomPaint(
           size: Size(constraints.maxWidth, constraints.maxHeight),
           painter: _PositionalDistributionPainter(
-            widget.distribution,
-            widget.showBackground ? backgroundDist : null,
+            _distributions,
+            widget.showSecond,
           ),
         );
       },
@@ -54,13 +50,11 @@ class _PositionalDistributionPlotState
 }
 
 class _PositionalDistributionPainter extends CustomPainter {
-  final Map<int, Map<String, int>> data;
-  final Map<int, Map<String, double>>? backgroundDist;
-  final TextStyle plotTextStyle =
-      const TextStyle(color: Colors.black, fontSize: 12);
+  final List<Map<int, Map<String, double>>> data;
+  final bool showSecond;
+  final TextStyle plotTextStyle = const TextStyle(color: Colors.black, fontSize: 12);
 
-  _PositionalDistributionPainter(
-      this.data, this.backgroundDist);
+  _PositionalDistributionPainter(this.data, this.showSecond);
 
   static final Map<String, Color> aminoColors = {
     'A': Colors.blue,
@@ -98,8 +92,8 @@ class _PositionalDistributionPainter extends CustomPainter {
       size.height - topPadding - bottomPadding,
     );
 
-    final int nPositions = data.keys.length;
-    final int barGroups = backgroundDist == null ? 1 : 2;
+    final int nPositions = data[0].keys.length;
+    final int barGroups = data.length;
     final double groupWidth = plotSize.width / nPositions;
     final double barWidth = groupWidth / (barGroups + 0.5);
 
@@ -147,16 +141,15 @@ class _PositionalDistributionPainter extends CustomPainter {
     for (int pos = 0; pos < nPositions; pos++) {
       final double groupX = plotOffset.dx + pos * groupWidth;
 
-      final dist = data[pos];
-      if (dist != null) {
+      if (data[0][pos] != null) {
         _drawStackedBar(canvas, groupX, plotOffset.dy + plotSize.height,
-            barWidth, plotSize.height, dist.map((k, v) => MapEntry(k, v.toDouble())),);
+            barWidth, plotSize.height, data[0][pos]!.map((k, v) => MapEntry(k, v.toDouble())),);
       }
 
-      if (backgroundDist != null && backgroundDist![pos] != null) {
+      if (showSecond && data.length == 2 && data[1][pos] != null) {
         final double barX = groupX + barWidth;
         _drawStackedBar(canvas, barX, plotOffset.dy + plotSize.height,
-            barWidth, plotSize.height, backgroundDist![pos]!);
+            barWidth, plotSize.height, data[1][pos]!);
       }
 
       // Only draw 10 labels
@@ -167,9 +160,8 @@ class _PositionalDistributionPainter extends CustomPainter {
         );
         tp.layout();
         tp.paint(
-            canvas,
-            Offset(groupX + groupWidth / 2 - tp.width / 2,
-                plotOffset.dy + plotSize.height + 5));
+          canvas,
+          Offset(groupX + groupWidth / 2 - tp.width / 2, plotOffset.dy + plotSize.height + 5));
       }
     }
 

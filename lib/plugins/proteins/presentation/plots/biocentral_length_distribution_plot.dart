@@ -3,13 +3,13 @@ import 'package:biocentral/sdk/data/biocentral_background_data.dart';
 import 'package:flutter/material.dart';
 
 class BiocentralLengthDistributionPlot extends StatefulWidget {
-  final Map<String, Map<String, double>> distribution;
-  final bool showBackground;
+  final List<Map<String, Map<String, double>>> distributions;
+  final bool showSecond;
 
   const BiocentralLengthDistributionPlot({
-    required this.distribution,
+    required this.distributions,
     super.key,
-    this.showBackground = false,
+    this.showSecond = true,
   });
 
   @override
@@ -17,35 +17,31 @@ class BiocentralLengthDistributionPlot extends StatefulWidget {
 }
 
 class _BiocentralLengthDistributionPlotState extends State<BiocentralLengthDistributionPlot> {
-  Map<String, Map<String, double>>? backgroundDist;
+  late List<Map<String, Map<String, double>>> _distributions;
 
   @override
   void initState() {
+    _distributions = List.from(widget.distributions);
+    if (_distributions.length < 2) _loadData();
     super.initState();
-    _loadData();
   }
 
   Future<void> _loadData() async {
-    final data =
-        await BiocentralBackgroundData.getAALengthDistribution();
+    final data = await BiocentralBackgroundData.getAALengthDistribution();
     setState(() {
-      backgroundDist = data;
+      _distributions.add(data);
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (widget.showBackground && backgroundDist == null) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
     return LayoutBuilder(
       builder: (context, constraints) {
         return CustomPaint(
           size: Size(constraints.maxWidth, constraints.maxHeight),
           painter: _LengthDistributionPainter(
-            widget.distribution,
-            widget.showBackground ? backgroundDist : null,
+            _distributions,
+            widget.showSecond,
           ),
         );
       },
@@ -54,13 +50,11 @@ class _BiocentralLengthDistributionPlotState extends State<BiocentralLengthDistr
 }
 
 class _LengthDistributionPainter extends CustomPainter {
-  final Map<String, Map<String, double>> data;
-  final Map<String, Map<String, double>>? backgroundDist;
-  final TextStyle plotTextStyle =
-      const TextStyle(color: Colors.black, fontSize: 12);
+  final List<Map<String, Map<String, double>>> data;
+  final bool showSecond;
+  final TextStyle plotTextStyle = const TextStyle(color: Colors.black, fontSize: 12);
 
-  _LengthDistributionPainter(
-      this.data, this.backgroundDist);
+  _LengthDistributionPainter(this.data, this.showSecond);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -76,7 +70,7 @@ class _LengthDistributionPainter extends CustomPainter {
     );
 
     // Extract KDE points
-    final Map<String, double> kdeData = data['length_kde']!;
+    final Map<String, double> kdeData = data[0]['length_kde']!;
     final List<_Point> kdePoints = kdeData.entries.map((entry) => _Point(double.parse(entry.key), entry.value)).toList();
     kdePoints.sort((a, b) => a.x.compareTo(b.x));
 
@@ -107,12 +101,12 @@ class _LengthDistributionPainter extends CustomPainter {
     }
     canvas.drawPath(kdePath, kdePaint);
 
-    final Map<String, double> stats = data['length_stats']!;
-    highlightMeanAndStdDev(canvas, plotSize, plotOffset, stats['min']!, stats['max']!, stats['mean']!, stats['std_dev']!, false);
+    final Map<String, double> stats = data[0]['length_stats']!;
+    highlightMeanAndStdDev(canvas, plotSize, plotOffset, stats, leftCutoff, rightCutoff, false);
 
-    if (backgroundDist != null) {
+    if (showSecond && data.length == 2) {
       // Draw background KDE
-      final Map<String, double> bgKdeData = backgroundDist!['length_kde']!;
+      final Map<String, double> bgKdeData = data[1]['length_kde']!;
       print(bgKdeData);
       final List<_Point> bgKdePoints = bgKdeData.entries.map((entry) => _Point(double.parse(entry.key), entry.value)).toList();
 
@@ -126,7 +120,7 @@ class _LengthDistributionPainter extends CustomPainter {
       for (int i = 0; i < bgKdePoints.length; i++) {
         final _Point point = bgKdePoints[i];
         if (point.x < leftCutoff || point.x > rightCutoff) {
-          //continue;
+          continue;
         }
         final double x = plotOffset.dx + (point.x - leftCutoff) / (rightCutoff - leftCutoff) * plotSize.width;
         final double y = plotOffset.dy + plotSize.height * (1 - point.y);
@@ -139,8 +133,8 @@ class _LengthDistributionPainter extends CustomPainter {
       }
       canvas.drawPath(bgKdePath, bgKdePaint);
 
-      final Map<String, double> bgStats = backgroundDist!['length_stats']!;
-      highlightMeanAndStdDev(canvas, plotSize, plotOffset, bgStats['min']!, bgStats['max']!, bgStats['mean']!, bgStats['std_dev']!, true);
+      final Map<String, double> bgStats = data[1]['length_stats']!;
+      highlightMeanAndStdDev(canvas, plotSize, plotOffset, bgStats, leftCutoff, rightCutoff, true);
     }
 
     // Draw axes
@@ -158,7 +152,7 @@ class _LengthDistributionPainter extends CustomPainter {
         Offset(plotOffset.dx, plotOffset.dy + plotSize.height),
         axesPaint);
 
-  
+
     // Draw x-axis ticks
     final int xTickCount = 5;
     for (int i = 0; i <= xTickCount; i++) {
@@ -213,28 +207,27 @@ class _LengthDistributionPainter extends CustomPainter {
 
     drawLegend(canvas, size);
   }
-  
 
-  void highlightMeanAndStdDev(Canvas canvas, Size plotSize, Offset plotOffset,
-      double minValue, double maxValue, double mean, double stdDev, bool isBackground) {
+
+  void highlightMeanAndStdDev(Canvas canvas, Size plotSize, Offset plotOffset, Map<String, double> stats, double leftCutoff, double rightCutoff, bool isBackground) {
+    if (leftCutoff > stats['mean']! || stats['mean']! > rightCutoff) return;
 
     final Color color = !isBackground ? Colors.green : Colors.purple;
-    
+
     final Paint meanPaint = Paint()
       ..color = color
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
 
-    final double meanX = plotOffset.dx + (mean - minValue) / (maxValue - minValue) * plotSize.width;
-
-    // Draw mean line
+    // Mean
+    final double meanX = plotOffset.dx + (stats['mean']! - leftCutoff) / (rightCutoff - leftCutoff) * plotSize.width;
     canvas.drawLine(Offset(meanX, plotOffset.dy), Offset(meanX, plotOffset.dy + plotSize.height), meanPaint);
-
-    // Draw std deviation range
-    final double leftStdDevX =
-        plotOffset.dx + (mean - stdDev - minValue) / (maxValue - minValue) * plotSize.width;
-    final double rightStdDevX =
-        plotOffset.dx + (mean + stdDev - minValue) / (maxValue - minValue) * plotSize.width;
+    
+    // std deviation range
+    final double leftStdDevX = stats['mean']! - stats['std_dev']! < leftCutoff ? plotOffset.dx :
+      plotOffset.dx + (stats['mean']! - stats['std_dev']! - leftCutoff) / (rightCutoff - leftCutoff) * plotSize.width;
+    final double rightStdDevX = stats['mean']! + stats['std_dev']! > rightCutoff ? plotOffset.dy :
+      plotOffset.dx + (stats['mean']! + stats['std_dev']! - leftCutoff) / (rightCutoff - leftCutoff) * plotSize.width;
 
     canvas.drawLine(Offset(leftStdDevX, plotOffset.dy + plotSize.height),
         Offset(rightStdDevX, plotOffset.dy + plotSize.height), meanPaint);
@@ -266,8 +259,8 @@ class _LengthDistributionPainter extends CustomPainter {
     final entries = [
       {'label': 'Distribution', 'color': Colors.blue}, // %TODO : better names
       {'label': 'Distribution Stats', 'color': Colors.green}, // %TODO : better names
-      if (backgroundDist != null) {'label': 'Background Data', 'color': Colors.pink},
-      if (backgroundDist != null) {'label': 'Background Data Stats', 'color': Colors.purple},
+      if (showSecond && data.length == 2) {'label': 'Compare Data', 'color': Colors.pink},
+      if (showSecond && data.length == 2) {'label': 'Compare Data Stats', 'color': Colors.purple},
     ];
 
     for (final entry in entries) {
