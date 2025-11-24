@@ -7,7 +7,10 @@ import 'package:biocentral/sdk/data/biocentral_python_companion.dart';
 class SequenceColumnWizardFactory extends ColumnWizardFactory {
   @override
   ColumnWizard create({required List<String> columnNames, required Map<String, dynamic> valueMap, required BiocentralPythonCompanion companion}) {
-    return SequenceColumnWizard(columnNames, valueMap.map((k, v) => MapEntry(k, v as Sequence)), companion);
+    if (columnNames.length < 2 || columnNames[1] == '') {
+      return SequenceNormalColumnWizard(columnNames, valueMap.map((k, v) => MapEntry(k, v as Sequence)), companion);
+    }
+    return SequenceCompareColumnWizard(columnNames, valueMap.map((key, val) => MapEntry(key, (val as Map<String, dynamic>).map((k, v) => MapEntry(k, v as Sequence)))), companion);
   }
 
   @override
@@ -15,15 +18,20 @@ class SequenceColumnWizardFactory extends ColumnWizardFactory {
     return TypeDetector(Sequence, (value) => value is Sequence);
   }
 }
-
-class SequenceColumnWizard extends ColumnWizard with CounterStats {
-  @override
-  final Map<String, Sequence> valueMap;
-
+abstract class SequenceColumnWizard extends ColumnWizard with CounterStats {
   @override
   Type get type => Sequence;
 
-  SequenceColumnWizard(super.columnNames, this.valueMap, super.companion);
+  SequenceColumnWizard(super.columnNames, super.companion);
+
+  Future<dynamic> distribution();
+}
+
+class SequenceNormalColumnWizard extends SequenceColumnWizard with CounterStats {
+  @override
+  final Map<String, Sequence> valueMap;
+
+  SequenceNormalColumnWizard(super.columnNames, this.valueMap, super.companion);
 
   Map<String, double>? _composition;
 
@@ -51,13 +59,14 @@ class SequenceColumnWizard extends ColumnWizard with CounterStats {
   ({
     Map<String, Map<String, double>> lenDistribution,
     Map<String, double> seqDistribution,
-    Map<int, Map<String, int>> posSeqDistribution,
+    Map<int, Map<String, double>> posSeqDistribution,
   })? _distribution;
 
+  @override
   Future<({
     Map<String, Map<String, double>> lenDistribution,
     Map<String, double> seqDistribution,
-    Map<int, Map<String, int>> posSeqDistribution,
+    Map<int, Map<String, double>> posSeqDistribution,
   })> distribution() async {
     if(_distribution != null) {
       return _distribution!;
@@ -66,158 +75,292 @@ class SequenceColumnWizard extends ColumnWizard with CounterStats {
     final ({
     Map<String, Map<String, double>> lenDistribution,
     Map<String, double> seqDistribution,
-    Map<int, Map<String, int>> posSeqDistribution,
+    Map<int, Map<String, double>> posSeqDistribution,
   }) result = await compute(_calculateDistribution, valueMap.values.map((sequence) => sequence.toString()).toList());
     _distribution = result;
     return _distribution!;
-}
+  }
 
-Future<({
-  Map<String, Map<String, double>> lenDistribution,
-  Map<String, double> seqDistribution,
-  Map<int, Map<String, int>> posSeqDistribution,
-})> _calculateDistribution(List<String> sequences) async {
-  const letters = [
-    'A', 'C', 'D', 'E', 'F', 'G', 'H', 'I',
-    'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S',
-    'T', 'V', 'W', 'Y', 'X', 'U'
-  ];
+  Future<({
+    Map<String, Map<String, double>> lenDistribution,
+    Map<String, double> seqDistribution,
+    Map<int, Map<String, double>> posSeqDistribution,
+  })> _calculateDistribution(List<String> sequences) async {
+    const letters = [
+      'A', 'C', 'D', 'E', 'F', 'G', 'H', 'I',
+      'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S',
+      'T', 'V', 'W', 'Y', 'X', 'U'
+    ];
 
-  // Initialize results
-  final Map<String, Map<String, double>> lenDistribution = {};
-  final Map<String, double> seqDistribution = {for (final l in letters) l: 0};
-  final Map<int, Map<String, int>> posSeqDistribution = {};
-  lenDistribution['length_kde'] = {};
-  lenDistribution['length_stats'] = {};
+    // Initialize results
+    final Map<String, Map<String, double>> lenDistribution = {};
+    final Map<String, double> seqDistribution = {for (final l in letters) l: 0};
+    final Map<int, Map<String, double>> posSeqDistribution = {};
+    lenDistribution['length_kde'] = {};
+    lenDistribution['length_stats'] = {};
 
-  final List<int> lengths = [];
+    final List<int> lengths = [];
 
-  // Single pass through all sequences
-  for (final seq in sequences) {
-    final len = seq.length;
-    lengths.add(len);
+    // Single pass through all sequences
+    for (final seq in sequences) {
+      final len = seq.length;
+      lengths.add(len);
 
-    // Update KDE-style length counts
-    lenDistribution['length_kde']![len.toString()] =
-        (lenDistribution['length_kde']![len.toString()] ?? 0) + 1;
+      // Update KDE-style length counts
+      lenDistribution['length_kde']![len.toString()] =
+          (lenDistribution['length_kde']![len.toString()] ?? 0) + 1;
 
-    // Update per-character and positional distributions
-    for (var i = 0; i < seq.length; i++) {
-      final char = seq[i];
-      if (letters.contains(char)) {
-        seqDistribution[char] = (seqDistribution[char] ?? 0) + 1;
+      // Update per-character and positional distributions
+      for (var i = 0; i < seq.length; i++) {
+        final char = seq[i];
+        if (letters.contains(char)) {
+          seqDistribution[char] = (seqDistribution[char] ?? 0) + 1;
 
-        posSeqDistribution.putIfAbsent(
-          i,
-          () => {for (final l in letters) l: 0},
-        );
-        posSeqDistribution[i]![char] =
-            (posSeqDistribution[i]![char] ?? 0) + 1;
+          posSeqDistribution.putIfAbsent(
+            i,
+            () => {for (final l in letters) l: 0},
+          );
+          posSeqDistribution[i]![char] =
+              (posSeqDistribution[i]![char] ?? 0) + 1;
+        }
       }
     }
-  }
 
-  final totalCounts = lenDistribution['length_kde']!.values.reduce((a, b) => a + b);
-  lenDistribution['length_kde']!.updateAll((key, value) => value / totalCounts);
+    final totalCounts = lenDistribution['length_kde']!.values.reduce((a, b) => a + b);
+    lenDistribution['length_kde']!.updateAll((key, value) => value / totalCounts);
 
-  if (lengths.isNotEmpty) {
-    lengths.sort();
+    if (lengths.isNotEmpty) {
+      lengths.sort();
 
-    final int n = lengths.length;
-    final double mean = lengths.reduce((a, b) => a + b) / n;
+      final int n = lengths.length;
+      final double mean = lengths.reduce((a, b) => a + b) / n;
 
-    final double variance = lengths
-            .map((x) => pow(x - mean, 2))
-            .reduce((a, b) => a + b) /
-        n;
+      final double variance = lengths
+              .map((x) => pow(x - mean, 2))
+              .reduce((a, b) => a + b) /
+          n;
 
-    final double stdDev = sqrt(variance);
+      final double stdDev = sqrt(variance);
 
-    double percentile(List<int> sortedList, double p) {
-      final double rank = p * (sortedList.length - 1);
-      final int lower = rank.floor();
-      final int upper = rank.ceil();
-      if (lower == upper) return sortedList[lower].toDouble();
-      final double weight = rank - lower;
-      return sortedList[lower] * (1 - weight) + sortedList[upper] * weight;
+      double percentile(List<int> sortedList, double p) {
+        final double rank = p * (sortedList.length - 1);
+        final int lower = rank.floor();
+        final int upper = rank.ceil();
+        if (lower == upper) return sortedList[lower].toDouble();
+        final double weight = rank - lower;
+        return sortedList[lower] * (1 - weight) + sortedList[upper] * weight;
+      }
+
+      lenDistribution['length_stats'] = {
+        'min': lengths.first.toDouble(),
+        'max': lengths.last.toDouble(),
+        'mean': mean,
+        'variance': variance,
+        'std_dev': stdDev,
+        'p01': percentile(lengths, 0.01),
+        'p99': percentile(lengths, 0.99),
+      };
     }
 
-    lenDistribution['length_stats'] = {
-      'min': lengths.first.toDouble(),
-      'max': lengths.last.toDouble(),
-      'mean': mean,
-      'variance': variance,
-      'std_dev': stdDev,
-      'p01': percentile(lengths, 0.01),
-      'p99': percentile(lengths, 0.99),
-    };
+    return (
+      lenDistribution: lenDistribution,
+      seqDistribution: seqDistribution,
+      posSeqDistribution: posSeqDistribution,
+    );
   }
-
-  return (
-    lenDistribution: lenDistribution,
-    seqDistribution: seqDistribution,
-    posSeqDistribution: posSeqDistribution,
-  );
 }
 
+class SequenceCompareColumnWizard extends SequenceColumnWizard with CounterStats {
+  @override
+  final Map<String, Map<String, Sequence>> valueMap;
 
-  /*
-  Future<Map<String, Map<String, double>>> lengthDistribution() async {
-    final Stopwatch stopwatch = Stopwatch()..start();
-    final Map<String, Map<String, double>> convertedMap = {};
-    final Either<BiocentralException, Map<String, dynamic>> response = await companion.lengthDistribution(valueMap.values.map((sequence) => sequence.toString()).toList());
+  SequenceCompareColumnWizard(super.columnNames, this.valueMap, super.companion);
 
-    response.fold(
-      (exception) {
-        logger.e(exception);
-      },
-      (map) {
-        convertedMap['length_stats'] = Map<String, double>.from(map['length_stats']);
-        convertedMap['length_kde'] = Map<String, double>.from(map['length_kde']);
-      },
-    );
-    stopwatch.stop();
-    print('time elapsed: ${stopwatch.elapsed}');
-    return convertedMap;
+  Map<String, int>? _length;
+
+  Future<int> lengthOfKey(String key) async {
+    if(_length != null) {
+      return _length![key] ?? 0;
+    }
+    _length = {};
+
+    for (MapEntry<String, Map<String, Sequence>> entry in valueMap.entries) {
+      _length![entry.key] = entry.value.keys.length;
+    }
+
+    return _length![key] ?? 0;
   }
 
-  Future<Map<String, double>> sequenceDistribution() async {
-    final Stopwatch stopwatch = Stopwatch()..start();
-    Map<String, double> convertedMap = {};
-    final Either<BiocentralException, Map<String, dynamic>> response = await companion.sequenceDistribution(valueMap.values.map((sequence) => sequence.toString()).toList());
+  Map<String, List<int>>? _missingIndices;
 
-    response.fold(
-      (exception) {
-        logger.e(exception);
-      },
-      (map) {
-        convertedMap = Map<String, double>.from(map);
-      },
-    );
-    stopwatch.stop();
-    print('time elapsed: ${stopwatch.elapsed}');
-    return convertedMap;
-  }
+  Future<Map<String, List<int>>> _getMissingIndices() async {
+    if (_missingIndices != null) {
+      return _missingIndices!;
+    }
+    _missingIndices = {};
 
-  Future<Map<int, Map<String, int>>> positionalSequenceDistribution() async {
-    final Stopwatch stopwatch = Stopwatch()..start();
-    Map<int, Map<String, int>> convertedMap = {};
-    final Either<BiocentralException, Map<int, dynamic>> response = await companion.positionalSequenceDistribution(valueMap.values.map((sequence) => sequence.toString()).toList());
+    for (MapEntry<String, Map<String, Sequence>> entry in valueMap.entries) {
+      final List<int> missingIndices = [];
+      for ((int, dynamic) indexValue in entry.value.values.indexed) {
+        final int index = indexValue.$1;
+        final dynamic value = indexValue.$2;
 
-    response.fold(
-      (exception) {
-        logger.e(exception);
-      },
-      (map) {
-        Map<String, int> bufferMap = {};
-        for (var key in map.keys) {
-          bufferMap = Map<String, int>.from(map[key]);
-          convertedMap[key] = bufferMap;
+        if (_valueIsInvalid(value)) {
+          missingIndices.add(index);
         }
-      },
+      }
+      _missingIndices![entry.key] = missingIndices;
+    }
+    return _missingIndices!;
+  }
+
+  bool _valueIsInvalid(dynamic value) {
+    return value == null || value.toString().isEmpty || double.tryParse(value.toString())?.isNaN == true;
+  }
+
+  Future<int> numberMissingOfKey(String key) async {
+    return (await _getMissingIndices())[key]!.length;
+  }
+
+  Map<String, Map<String, double>>? _composition;
+
+  Future<Map<String, Map<String, double>>> composition() async {
+    if(_composition != null) {
+      return _composition!;
+    }
+    _composition = {};
+
+    for (MapEntry<String, Map<String, Sequence>> entry in valueMap.entries) {
+      final Map<String, int> counts = {};
+      int totalCount = 0;
+
+      for (Sequence sequence in entry.value.values) {
+        for (String token in sequence.toString().split('')) {
+          counts[token] = (counts[token] ?? 0) + 1;
+          totalCount++;
+        }
+      }
+
+      final Map<String, double> compositionResult = counts.map((k, v) => MapEntry(k, v / totalCount));
+      _composition![entry.key] = compositionResult;
+    }
+
+    return _composition!;
+  }
+
+  Map<String, ({
+    Map<String, Map<String, double>> lenDistribution,
+    Map<String, double> seqDistribution,
+    Map<int, Map<String, double>> posSeqDistribution,
+  })>? _distribution;
+
+  @override
+  Future<Map<String, ({
+    Map<String, Map<String, double>> lenDistribution,
+    Map<String, double> seqDistribution,
+    Map<int, Map<String, double>> posSeqDistribution,
+  })>> distribution() async {
+    if(_distribution != null) {
+      return _distribution!;
+    }
+    _distribution = {};
+
+    for (MapEntry<String, Map<String, Sequence>> entry in valueMap.entries) {
+      final ({
+        Map<String, Map<String, double>> lenDistribution,
+        Map<String, double> seqDistribution,
+        Map<int, Map<String, double>> posSeqDistribution,
+      }) result = await compute(_calculateDistribution, entry.value.values.map((sequence) => sequence.toString()).toList());
+      _distribution![entry.key] = result;
+    }
+    return _distribution!;
+  }
+
+  Future<({
+    Map<String, Map<String, double>> lenDistribution,
+    Map<String, double> seqDistribution,
+    Map<int, Map<String, double>> posSeqDistribution,
+  })> _calculateDistribution(List<String> sequences) async {
+    const letters = [
+      'A', 'C', 'D', 'E', 'F', 'G', 'H', 'I',
+      'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S',
+      'T', 'V', 'W', 'Y', 'X', 'U'
+    ];
+
+    // Initialize results
+    final Map<String, Map<String, double>> lenDistribution = {};
+    final Map<String, double> seqDistribution = {for (final l in letters) l: 0};
+    final Map<int, Map<String, double>> posSeqDistribution = {};
+    lenDistribution['length_kde'] = {};
+    lenDistribution['length_stats'] = {};
+
+    final List<int> lengths = [];
+
+    // Single pass through all sequences
+    for (final seq in sequences) {
+      final len = seq.length;
+      lengths.add(len);
+
+      // Update KDE-style length counts
+      lenDistribution['length_kde']![len.toString()] =
+          (lenDistribution['length_kde']![len.toString()] ?? 0) + 1;
+
+      // Update per-character and positional distributions
+      for (var i = 0; i < seq.length; i++) {
+        final char = seq[i];
+        if (letters.contains(char)) {
+          seqDistribution[char] = (seqDistribution[char] ?? 0) + 1;
+
+          posSeqDistribution.putIfAbsent(
+            i,
+            () => {for (final l in letters) l: 0},
+          );
+          posSeqDistribution[i]![char] =
+              (posSeqDistribution[i]![char] ?? 0) + 1;
+        }
+      }
+    }
+
+    final totalCounts = lenDistribution['length_kde']!.values.reduce((a, b) => a + b);
+    lenDistribution['length_kde']!.updateAll((key, value) => value / totalCounts);
+
+    if (lengths.isNotEmpty) {
+      lengths.sort();
+
+      final int n = lengths.length;
+      final double mean = lengths.reduce((a, b) => a + b) / n;
+
+      final double variance = lengths
+              .map((x) => pow(x - mean, 2))
+              .reduce((a, b) => a + b) /
+          n;
+
+      final double stdDev = sqrt(variance);
+
+      double percentile(List<int> sortedList, double p) {
+        final double rank = p * (sortedList.length - 1);
+        final int lower = rank.floor();
+        final int upper = rank.ceil();
+        if (lower == upper) return sortedList[lower].toDouble();
+        final double weight = rank - lower;
+        return sortedList[lower] * (1 - weight) + sortedList[upper] * weight;
+      }
+
+      lenDistribution['length_stats'] = {
+        'min': lengths.first.toDouble(),
+        'max': lengths.last.toDouble(),
+        'mean': mean,
+        'variance': variance,
+        'std_dev': stdDev,
+        'p01': percentile(lengths, 0.01),
+        'p99': percentile(lengths, 0.99),
+      };
+    }
+
+    return (
+      lenDistribution: lenDistribution,
+      seqDistribution: seqDistribution,
+      posSeqDistribution: posSeqDistribution,
     );
-    stopwatch.stop();
-    print('time elapsed: ${stopwatch.elapsed}');
-    return convertedMap;
-  }*/
+  }
 }

@@ -1,3 +1,4 @@
+import 'package:bio_flutter/bio_flutter.dart';
 import 'package:biocentral/sdk/data/biocentral_python_companion.dart';
 import 'package:biocentral/sdk/model/column_wizard_abstract.dart';
 import 'package:biocentral/sdk/model/column_wizard_defaults.dart';
@@ -39,7 +40,12 @@ class BiocentralColumnWizardRepository {
     required Map<String, dynamic> valueMap,
     Type? columnType,
   }) async {
-    columnType ??= await _detectColumnType(valueMap.values);
+    if (columnNames.length < 2 || columnNames[1] == '') {
+      columnType ??= await _detectColumnType(valueMap.values);
+    } else {
+      columnType ??= columnNames[0] == 'sequence' ? Sequence : await _detectColumnType(valueMap.values);
+    }
+    print('${columnNames} - ${valueMap} - ${columnType}');
     if (_factories.containsKey(columnType)) {
       final columnWizard = _factories[columnType]!.create(columnNames: columnNames, valueMap: valueMap, companion: companion) as T;
       return columnWizard;

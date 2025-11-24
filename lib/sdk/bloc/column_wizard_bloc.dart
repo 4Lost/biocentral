@@ -85,6 +85,8 @@ class ColumnWizardBloc extends Bloc<ColumnWizardEvent, ColumnWizardBlocState> {
       emit(state.copyWith(copyMap: {'columns': columns, 'status': ColumnWizardBlocStatus.loaded}));
     });
     on<ColumnWizardSelectColumnEvent>((event, emit) async {
+      if (event.selectedColumns == []) return;
+
       final Map<List<String>, ColumnWizard> columnWizards = state.columnWizards ?? {};
       Widget Function(ColumnWizard)? customBuildFunction;
 
@@ -119,6 +121,30 @@ class ColumnWizardBloc extends Bloc<ColumnWizardEvent, ColumnWizardBlocState> {
   }
   
   Map<String, dynamic> getValueMap(ColumnWizardSelectColumnEvent event) {
-    return state.columns[event.selectedColumns[0]] ?? {};
+    if (event.selectedColumns.length < 2 || event.selectedColumns[1] == '') return state.columns[event.selectedColumns[0]] ?? {};
+
+    final Map<String, dynamic> result = {};
+    List<List<String>> newKeys = [];
+    for (int i = 1; i < event.selectedColumns.length; i++) {
+      final Map<String, dynamic>? columnMap = state.columns[event.selectedColumns[i]];
+      if (columnMap == null) break;
+
+      newKeys.add(columnMap.values.map((e) => e.toString()).toSet().toList()..sort());
     }
+    newKeys = newKeys.fold<List<List<String>>>([[]], (acc, list) => acc.expand((prev) => list.map((value) => [...prev, value])).toList());
+
+    for (List<String> key in newKeys) {
+      final Map<String, dynamic> subMap = Map.from(state.columns[event.selectedColumns[0]] ?? {});
+      String mapKey = '';
+
+      for (int i = 0; i < key.length; i++) {
+        mapKey += '${mapKey == '' ? '' : '&'}${event.selectedColumns[i + 1]}=${key[i]}';
+        subMap.removeWhere((k, v) => (state.columns[event.selectedColumns[i + 1]]![k].toString() != key[i]));
+      }
+
+      result[mapKey] = subMap;
+    }
+
+    return result;
+  }
 }
