@@ -18,7 +18,7 @@ class SequenceColumnWizardFactory extends ColumnWizardFactory {
     return TypeDetector(Sequence, (value) => value is Sequence);
   }
 }
-abstract class SequenceColumnWizard extends ColumnWizard with CounterStats {
+abstract class SequenceColumnWizard extends ColumnWizard {
   @override
   Type get type => Sequence;
 
@@ -170,56 +170,18 @@ class SequenceNormalColumnWizard extends SequenceColumnWizard with CounterStats 
   }
 }
 
-class SequenceCompareColumnWizard extends SequenceColumnWizard with CounterStats {
+class SequenceCompareColumnWizard extends SequenceColumnWizard with CounterCompareStats {
   @override
   final Map<String, Map<String, Sequence>> valueMap;
 
   SequenceCompareColumnWizard(super.columnNames, this.valueMap, super.companion);
 
-  Map<String, int>? _length;
+  @override
+  bool get compare => true;
 
-  Future<int> lengthOfKey(String key) async {
-    if(_length != null) {
-      return _length![key] ?? 0;
-    }
-    _length = {};
-
-    for (MapEntry<String, Map<String, Sequence>> entry in valueMap.entries) {
-      _length![entry.key] = entry.value.keys.length;
-    }
-
-    return _length![key] ?? 0;
-  }
-
-  Map<String, List<int>>? _missingIndices;
-
-  Future<Map<String, List<int>>> _getMissingIndices() async {
-    if (_missingIndices != null) {
-      return _missingIndices!;
-    }
-    _missingIndices = {};
-
-    for (MapEntry<String, Map<String, Sequence>> entry in valueMap.entries) {
-      final List<int> missingIndices = [];
-      for ((int, dynamic) indexValue in entry.value.values.indexed) {
-        final int index = indexValue.$1;
-        final dynamic value = indexValue.$2;
-
-        if (_valueIsInvalid(value)) {
-          missingIndices.add(index);
-        }
-      }
-      _missingIndices![entry.key] = missingIndices;
-    }
-    return _missingIndices!;
-  }
-
-  bool _valueIsInvalid(dynamic value) {
-    return value == null || value.toString().isEmpty || double.tryParse(value.toString())?.isNaN == true;
-  }
-
-  Future<int> numberMissingOfKey(String key) async {
-    return (await _getMissingIndices())[key]!.length;
+  @override
+  Future<Iterable<String>> getKeys() async {
+    return valueMap.keys;
   }
 
   Map<String, Map<String, double>>? _composition;

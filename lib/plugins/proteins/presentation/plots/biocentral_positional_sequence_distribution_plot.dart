@@ -18,6 +18,8 @@ class BiocentralPositionalSequenceDistributionPlot extends StatefulWidget {
 
 class _PositionalDistributionPlotState extends State<BiocentralPositionalSequenceDistributionPlot> {
   late List<Map<int, Map<String, double>>> _distributions;
+  int _startIndex = 0; // starting index of visible positions
+  static const int pageSize = 50;
 
   @override
   void initState() {
@@ -35,16 +37,48 @@ class _PositionalDistributionPlotState extends State<BiocentralPositionalSequenc
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return CustomPaint(
-          size: Size(constraints.maxWidth, constraints.maxHeight),
-          painter: _PositionalDistributionPainter(
-            _distributions,
-            widget.showSecond,
+    final int nPositions = _distributions[0].keys.length;
+
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(
+              onPressed: _startIndex > 0 ? () {
+                setState(() {
+                  _startIndex = (_startIndex - pageSize).clamp(0, nPositions);
+                });
+              } : null,
+              child: const Text('Previous'),
+            ),
+            const SizedBox(width: 20),
+            ElevatedButton(
+              onPressed: _startIndex + pageSize < nPositions ? () {
+                setState(() {
+                  _startIndex = (_startIndex + pageSize).clamp(0, nPositions);
+                });
+              } : null,
+              child: const Text('Next'),
+            ),
+          ],
+        ),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return CustomPaint(
+                size: Size(constraints.maxWidth, constraints.maxHeight),
+                painter: _PositionalDistributionPainter(
+                  _distributions,
+                  widget.showSecond,
+                  _startIndex,
+                  pageSize,
+                ),
+              );
+            },
           ),
-        );
-      },
+        ),
+      ],
     );
   }
 }
@@ -53,8 +87,10 @@ class _PositionalDistributionPainter extends CustomPainter {
   final List<Map<int, Map<String, double>>> data;
   final bool showSecond;
   final TextStyle plotTextStyle = const TextStyle(color: Colors.black, fontSize: 12);
+  final int startIndex;
+  final int pageSize;
 
-  _PositionalDistributionPainter(this.data, this.showSecond);
+  _PositionalDistributionPainter(this.data, this.showSecond, this.startIndex, this.pageSize);
 
   static final Map<String, Color> aminoColors = {
     'A': Colors.blue,
@@ -93,8 +129,10 @@ class _PositionalDistributionPainter extends CustomPainter {
     );
 
     final int nPositions = data[0].keys.length;
+    final int endIndex = (startIndex + pageSize).clamp(0, nPositions);
+    final int visibleCount = endIndex - startIndex; 
     final int barGroups = data.length;
-    final double groupWidth = plotSize.width / nPositions;
+    final double groupWidth = plotSize.width / visibleCount;
     final double barWidth = groupWidth / (barGroups + 0.5);
 
     final Paint borderPaint = Paint()
@@ -135,11 +173,11 @@ class _PositionalDistributionPainter extends CustomPainter {
     }
 
     // X-axis labels step
-    final int labelStep = (nPositions / 10).ceil().clamp(1, nPositions);
+    final int labelStep = (pageSize / 10).ceil().clamp(1, pageSize);
 
     // Bars
-    for (int pos = 0; pos < nPositions; pos++) {
-      final double groupX = plotOffset.dx + pos * groupWidth;
+    for (int pos = startIndex; pos < endIndex; pos++) {
+      final double groupX = plotOffset.dx + (pos - startIndex) * groupWidth;
 
       if (data[0][pos] != null) {
         _drawStackedBar(canvas, groupX, plotOffset.dy + plotSize.height,
@@ -153,9 +191,9 @@ class _PositionalDistributionPainter extends CustomPainter {
       }
 
       // Only draw 10 labels
-      if ((pos % labelStep) == 0 || pos == nPositions - 1) {
+      if ((pos % labelStep) == 0 || pos == pageSize - 1) {
         final tp = TextPainter(
-          text: TextSpan(text: '${pos + 1}', style: plotTextStyle),
+          text: TextSpan(text: '${startIndex + pos + 1}', style: plotTextStyle),
           textDirection: TextDirection.ltr,
         );
         tp.layout();

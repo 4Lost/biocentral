@@ -107,7 +107,6 @@ class _LengthDistributionPainter extends CustomPainter {
     if (showSecond && data.length == 2) {
       // Draw background KDE
       final Map<String, double> bgKdeData = data[1]['length_kde']!;
-      print(bgKdeData);
       final List<_Point> bgKdePoints = bgKdeData.entries.map((entry) => _Point(double.parse(entry.key), entry.value)).toList();
 
       final Paint bgKdePaint = Paint()

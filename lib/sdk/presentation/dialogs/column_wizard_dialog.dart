@@ -69,7 +69,9 @@ class _ColumnWizardDialogState extends State<ColumnWizardDialog> with AutomaticK
     if (lowestEmpty == -1) lowestEmpty = selectedColumns.length;
 
     for (int i = 0; i <= lowestEmpty; i++) {
-      final Iterable<String> keys = (Map.of(state.columns)..removeWhere((key, value) => usedColumns.contains(key) || value.keys.length > 10)).keys;
+      Iterable<String> keys = [];
+      keys = i == 0 ? state.columns.keys :
+        (Map.of(state.columns)..removeWhere((key, value) => usedColumns.contains(key))).keys; //  || value.keys.length > 10??
       if (keys.isEmpty) continue;
 
       final List<DropdownMenuEntry<String>> entries = keys.map((key) => DropdownMenuEntry(value: key, label: key)).toList();
@@ -95,7 +97,7 @@ class _ColumnWizardDialogState extends State<ColumnWizardDialog> with AutomaticK
   }
 
   Widget buildColumnWizardDisplay(ColumnWizardBlocState state) {
-    final ColumnWizard? columnWizard = state.columnWizards?[state.selectedColumns];//Todo fix for multiple columns
+    final ColumnWizard? columnWizard = state.columnWizards?[state.selectedColumns];
 
     if (columnWizard == null) {
       return Container();
