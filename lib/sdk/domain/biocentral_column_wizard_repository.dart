@@ -45,7 +45,6 @@ class BiocentralColumnWizardRepository {
     } else {
       columnType ??= columnNames[0] == 'sequence' ? Sequence : await _detectColumnType(valueMap.values);
     }
-    print('${columnNames} - ${valueMap} - ${columnType}');
     if (_factories.containsKey(columnType)) {
       final columnWizard = _factories[columnType]!.create(columnNames: columnNames, valueMap: valueMap, companion: companion) as T;
       return columnWizard;

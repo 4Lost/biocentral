@@ -15,9 +15,7 @@ class SequenceColumnWizardDisplay extends StatefulWidget {
 }
 
 class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDisplay> {
-  bool lenDistCompare = false;
-  bool protDistCompare = false;
-  bool posProtDistCompare = false;
+  List<bool> compareValues = [false, false, false];
   List<String> compareColumns = ['', ''];
 
   @override
@@ -27,7 +25,7 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
 
   @override
   Widget build(BuildContext context) {
-    return widget.columnWizard is SequenceCompareColumnWizard ? buildCompare(context) : buildSingle(context) ;
+    return widget.columnWizard.compare ? buildCompare(context) : buildSingle(context);
   }
 
   Widget buildSingle(BuildContext context) {
@@ -48,49 +46,13 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
               width: SizeConfig.safeBlockHorizontal(context) * 5,
             ),
             const Text('Length Distribution\n'),
-            SizedBox(
-              height: SizeConfig.safeBlockHorizontal(context) * 3,
-              width: SizeConfig.safeBlockHorizontal(context) * 8,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).primaryColor, textStyle: Theme.of(context).textTheme.labelMedium,
-                ),
-                onPressed: () => setState(() {
-                  lenDistCompare = !lenDistCompare;
-                }),
-                child: const Text('Toggle Comparison', style: TextStyle(color: Colors.white)),
-              ),
-            ),
+            toggleCompareButton(1),
             buildLengthCompositionPlot([snapshot.data!.lenDistribution]),
             const Text('Protein Distribution\n'),
-            SizedBox(
-              height: SizeConfig.safeBlockHorizontal(context) * 3,
-              width: SizeConfig.safeBlockHorizontal(context) * 8,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).primaryColor, textStyle: Theme.of(context).textTheme.labelMedium,
-                ),
-                onPressed: () => setState(() {
-                  protDistCompare = !protDistCompare;
-                }),
-                child: const Text('Toggle Comparison', style: TextStyle(color: Colors.white)),
-              ),
-            ),
+            toggleCompareButton(2),
             buildCompositionPlot([snapshot.data!.seqDistribution]),
             const Text('Positional Protein Distribution\n'),
-            SizedBox(
-              height: SizeConfig.safeBlockHorizontal(context) * 3,
-              width: SizeConfig.safeBlockHorizontal(context) * 8,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).primaryColor, textStyle: Theme.of(context).textTheme.labelMedium,
-                ),
-                onPressed: () => setState(() {
-                  posProtDistCompare = !posProtDistCompare;
-                }),
-                child: const Text('Toggle Comparison', style: TextStyle(color: Colors.white)),
-              ),
-            ),
+            toggleCompareButton(3),
             buildPositionalCompositionPlot([snapshot.data!.posSeqDistribution]),
           ],
         );
@@ -108,11 +70,11 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const CircularProgressIndicator();
         if (compareColumns[0] == '' || compareColumns[1] == '') return compareSelection(snapshot.data!.keys);
+        compareValues = [true, true, true];
 
         return Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('Compare selection:'),
             compareSelection(snapshot.data!.keys),
             buildCompareSequenceStats(compareColumns[0], compareColumns[1]),
             SizedBox(
@@ -234,10 +196,10 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4.0),
-                    child: textFuture(' ', Future.value((widget.columnWizard as SequenceCompareColumnWizard).valueMap[first]!.values.firstOrNull.runtimeType ?? 'Unknown',)),
+                    child: textFuture(' ', Future.value((widget.columnWizard as SequenceCompareColumnWizard).valueMap[first]!.values.firstOrNull.runtimeType,)),
                   ),
                   const Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4.0),
+                    padding: EdgeInsets.symmetric(vertical: 4.0),
                     child: Text(' - ', textAlign: TextAlign.left),
                   ),
                   Padding(
@@ -285,7 +247,7 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
               .toList(),
             label: const Text('Select first..'),
             initialSelection: compareColumns[0],
-            onSelected: (String? value) => WidgetsBinding.instance.addPostFrameCallback((_) => setState(() => compareColumns[0] = value ?? '')),
+            onSelected: (String? value) => WidgetsBinding.instance.addPostFrameCallback((_) => setState(() => compareColumns = [value ?? '', compareColumns[1]],),),
           ),),
           const SizedBox(width: 16),
           Expanded(child: BiocentralDropdownMenu<String>(
@@ -294,7 +256,7 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
               .toList(),
             label: const Text('Select second..'),
             initialSelection: compareColumns[1],
-            onSelected: (String? value) => WidgetsBinding.instance.addPostFrameCallback((_) => setState(() => compareColumns[1] = value ?? '')),
+            onSelected: (String? value) => WidgetsBinding.instance.addPostFrameCallback((_) => setState(() => compareColumns = [compareColumns[0], value ?? ''],),),
           ),),
         ],),
         const Text('Please select which Data you want to compare.'),
@@ -323,28 +285,47 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
       },
     );
   }
+  
+  Widget toggleCompareButton(int index) {
+    return SizedBox(
+      height: SizeConfig.safeBlockHorizontal(context) * 3,
+      width: SizeConfig.safeBlockHorizontal(context) * 8,
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Theme.of(context).primaryColor, textStyle: Theme.of(context).textTheme.labelMedium,
+        ),
+        onPressed: () => setState(() {
+          compareValues[index - 1] = !compareValues[index - 1];
+        }),
+        child: const Text('Toggle Comparison', style: TextStyle(color: Colors.white)),
+      ),
+    );
+  }
 
   Widget buildLengthCompositionPlot(List<Map<String, Map<String, double>>> data) {
     return SizedBox(
+      key: Key('1-${compareColumns[0]}-${compareColumns[1]}'),
       width: 2000,
       height: 500,
-      child: BiocentralLengthDistributionPlot(distributions: data, showSecond: lenDistCompare,),
+      child: BiocentralLengthDistributionPlot(distributions: data, showSecond: compareValues[0],),
     );
   }
 
   Widget buildCompositionPlot(List<Map<String, double>> data) {
     return SizedBox(
+      key: Key('2-${compareColumns[0]}-${compareColumns[1]}'),
       width: 2000,
       height: 500,
-      child: BiocentralSequenceDistributionPlot(distributions: data, showSecond: protDistCompare,),
+      child: BiocentralSequenceDistributionPlot(distributions: data, showSecond: compareValues[1],),
     );
   }
 
   Widget buildPositionalCompositionPlot(List<Map<int, Map<String, double>>> data) {
     return SizedBox(
+      key: Key('3-${compareColumns[0]}-${compareColumns[1]}'),
       width: 2000,
       height: 500,
-      child: BiocentralPositionalSequenceDistributionPlot(distributions: data, showSecond: posProtDistCompare,),
+      child: BiocentralPositionalSequenceDistributionPlot(distributions: data, showSecond: compareValues[2],),
     );
   }
 }

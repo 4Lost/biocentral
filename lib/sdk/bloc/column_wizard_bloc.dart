@@ -85,7 +85,7 @@ class ColumnWizardBloc extends Bloc<ColumnWizardEvent, ColumnWizardBlocState> {
       emit(state.copyWith(copyMap: {'columns': columns, 'status': ColumnWizardBlocStatus.loaded}));
     });
     on<ColumnWizardSelectColumnEvent>((event, emit) async {
-      if (event.selectedColumns == []) return;
+      if (event.selectedColumns.length == 1 && event.selectedColumns.first == '') return;
 
       final Map<List<String>, ColumnWizard> columnWizards = state.columnWizards ?? {};
       Widget Function(ColumnWizard)? customBuildFunction;
