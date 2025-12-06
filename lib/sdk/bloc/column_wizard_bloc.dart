@@ -123,27 +123,33 @@ class ColumnWizardBloc extends Bloc<ColumnWizardEvent, ColumnWizardBlocState> {
   Map<String, dynamic> getValueMap(ColumnWizardSelectColumnEvent event) {
     if (event.selectedColumns.length < 2 || event.selectedColumns[1] == '') return state.columns[event.selectedColumns[0]] ?? {};
 
-    final Map<String, dynamic> result = {};
-    List<List<String>> newKeys = [];
-    for (int i = 1; i < event.selectedColumns.length; i++) {
-      final Map<String, dynamic>? columnMap = state.columns[event.selectedColumns[i]];
-      if (columnMap == null) break;
+    final Map<String, Map<String, dynamic>> result = {};
 
-      newKeys.add(columnMap.values.map((e) => e.toString()).toSet().toList()..sort());
+final columns = event.selectedColumns;
+if (columns.isEmpty) return result;
+
+final String valueColumn = columns.first;
+final List<String> groupingColumns = columns.sublist(1);
+final Map<String, dynamic>? primaryMap = state.columns[valueColumn];
+if (primaryMap == null) return result;
+
+for (final entry in primaryMap.entries) {
+  final String rowKey = entry.key;
+  final dynamic value = entry.value;
+
+  final parts = <String>[];
+  for (final col in groupingColumns) {
+    if (col != '') {
+      final dynamic colValue = state.columns[col]?[rowKey];
+      parts.add('$col=${colValue.toString()}');
     }
-    newKeys = newKeys.fold<List<List<String>>>([[]], (acc, list) => acc.expand((prev) => list.map((value) => [...prev, value])).toList());
+  }
 
-    for (List<String> key in newKeys) {
-      final Map<String, dynamic> subMap = Map.from(state.columns[event.selectedColumns[0]] ?? {});
-      String mapKey = '';
+  final String mapKey = parts.join('&');
 
-      for (int i = 0; i < key.length; i++) {
-        mapKey += '${mapKey == '' ? '' : '&'}${event.selectedColumns[i + 1]}=${key[i]}';
-        subMap.removeWhere((k, v) => (state.columns[event.selectedColumns[i + 1]]![k].toString() != key[i]));
-      }
-
-      result[mapKey] = subMap;
-    }
+  result.putIfAbsent(mapKey, () => {});
+  result[mapKey]![rowKey] = value;
+}
 
     return result;
   }

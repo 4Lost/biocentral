@@ -72,40 +72,28 @@ class _ColumnWizardGenericDisplayState extends State<ColumnWizardGenericDisplay>
 
   Widget buildCompare(BuildContext context, bool handleAsDiscrete) {
     if (handleAsDiscrete) {
-      return FutureBuilder<Iterable<String>>(
-        future: (widget.columnWizard as CounterCompareStats).getKeys(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData || snapshot.data == null) return const CircularProgressIndicator();
-          if (compareColumns[0] == '' || compareColumns[1] == '') return compareSelection(snapshot.data!);
+      if (compareColumns[0] == '' || compareColumns[1] == '') return compareSelection((widget.columnWizard as CounterCompareStats).getKeys());
 
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              compareSelection(snapshot.data!),
-              descriptiveStatisticsCounterStatsCompare(),
-              SizedBox(
-                width: SizeConfig.safeBlockHorizontal(context) * 5,
-              ),
-              barDistributionPlotCompare(),
-            ],
-          );
-        },
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          compareSelection((widget.columnWizard as CounterCompareStats).getKeys()),
+          descriptiveStatisticsCounterStatsCompare(),
+          SizedBox(
+            width: SizeConfig.safeBlockHorizontal(context) * 5,
+          ),
+          barDistributionPlotCompare(),
+        ],
       );
     } else {
-      return FutureBuilder<Iterable<String>>(
-        future: (widget.columnWizard as NumericCompareStats).getKeys(),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData || snapshot.data == null) return const CircularProgressIndicator();
-          if (compareColumns[0] == '' || compareColumns[1] == '') return compareSelection(snapshot.data!);
+      if (compareColumns[0] == '' || compareColumns[1] == '') return compareSelection((widget.columnWizard as NumericCompareStats).getKeys());
 
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              compareSelection(snapshot.data!),
-              distributionNumericStatsCompare(),
-            ],
-          );
-        },
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          compareSelection((widget.columnWizard as NumericCompareStats).getKeys()),
+          distributionNumericStatsCompare(),
+        ],
       );
     }
   }
@@ -366,35 +354,6 @@ class _ColumnWizardGenericDisplayState extends State<ColumnWizardGenericDisplay>
               textFuture('Number missing values:', columnWizard.numberMissingOfKey(compareColumns[0])),
               textFuture(' - ', columnWizard.numberMissingOfKey(compareColumns[1])),
             ],),
-            ...classCounts,
-          ],
-        );
-      },
-    );
-  }
-
-  Widget descriptiveCompareStatisticsCounterStats(String first, String second) {
-    final CounterStats columnWizard = widget.columnWizard as CounterStats;
-    return FutureBuilder<Map<String, int>>(
-      future: columnWizard.getCounts(), // Cached
-      builder: (context, snapshot) {
-        final List<Widget> classCounts = [];
-        if (snapshot.hasData && snapshot.data != null && snapshot.data!.isNotEmpty) {
-          classCounts.add(const Text('Class counts:'));
-          classCounts.addAll(
-            snapshot.data!.entries
-                .sorted((e1, e2) => e1.value.compareTo(e2.value))
-                .reversed
-                .map((entry) => Text('${entry.key}: ${entry.value}')),
-          );
-        }
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Descriptive Statistics:\n'),
-            textFuture('Number values:', columnWizard.length()),
-            textFuture('Number different classes:', columnWizard.getCounts().then((counts) => counts.keys.length)),
-            textFuture('Number missing values:', columnWizard.numberMissing()),
             ...classCounts,
           ],
         );

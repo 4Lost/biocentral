@@ -71,7 +71,8 @@ class _ColumnWizardDialogState extends State<ColumnWizardDialog> with AutomaticK
     for (int i = 0; i <= lowestEmpty; i++) {
       Iterable<String> keys = [];
       keys = i == 0 ? state.columns.keys :
-        (Map.of(state.columns)..removeWhere((key, value) => usedColumns.contains(key))).keys; //  || value.keys.length > 10??
+        (Map.of(state.columns)..removeWhere((key, value) => usedColumns.contains(key) || value.values.toSet().length > 10)).keys;
+
       if (keys.isEmpty) continue;
 
       final List<DropdownMenuEntry<String>> entries = keys.map((key) => DropdownMenuEntry(value: key, label: key)).toList();
