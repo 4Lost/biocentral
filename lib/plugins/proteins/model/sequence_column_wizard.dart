@@ -23,8 +23,6 @@ abstract class SequenceColumnWizard extends ColumnWizard {
   Type get type => Sequence;
 
   SequenceColumnWizard(super.columnNames, super.companion);
-
-  Future<dynamic> distribution();
 }
 
 class SequenceNormalColumnWizard extends SequenceColumnWizard with CounterStats {
@@ -62,7 +60,6 @@ class SequenceNormalColumnWizard extends SequenceColumnWizard with CounterStats 
     Map<int, Map<String, double>> posSeqDistribution,
   })? _distribution;
 
-  @override
   Future<({
     Map<String, Map<String, double>> lenDistribution,
     Map<String, double> seqDistribution,
@@ -180,7 +177,7 @@ class SequenceCompareColumnWizard extends SequenceColumnWizard with CounterCompa
   bool get compare => true;
 
   @override
-  Future<Iterable<String>> getKeys() async {
+  Iterable<String> getKeys() {
     return valueMap.keys;
   }
 
@@ -216,26 +213,35 @@ class SequenceCompareColumnWizard extends SequenceColumnWizard with CounterCompa
     Map<int, Map<String, double>> posSeqDistribution,
   })>? _distribution;
 
-  @override
-  Future<Map<String, ({
+  Future<List<({
     Map<String, Map<String, double>> lenDistribution,
     Map<String, double> seqDistribution,
     Map<int, Map<String, double>> posSeqDistribution,
-  })>> distribution() async {
-    if(_distribution != null) {
-      return _distribution!;
+  })>> distributionByKeys(String firstColumn, String secondColumn) async {
+    if(_distribution != null && _distribution![firstColumn] != null && _distribution![secondColumn] != null) {
+      return [_distribution![firstColumn]!, _distribution![secondColumn]!];
     }
-    _distribution = {};
+    _distribution ??= {};
 
-    for (MapEntry<String, Map<String, Sequence>> entry in valueMap.entries) {
+    if (_distribution![firstColumn] == null) {
       final ({
         Map<String, Map<String, double>> lenDistribution,
         Map<String, double> seqDistribution,
         Map<int, Map<String, double>> posSeqDistribution,
-      }) result = await compute(_calculateDistribution, entry.value.values.map((sequence) => sequence.toString()).toList());
-      _distribution![entry.key] = result;
+      }) result = await compute(_calculateDistribution, valueMap[firstColumn]!.values.map((sequence) => sequence.toString()).toList());
+      _distribution![firstColumn] = result;
     }
-    return _distribution!;
+
+    if (_distribution![secondColumn] == null) {
+      final ({
+        Map<String, Map<String, double>> lenDistribution,
+        Map<String, double> seqDistribution,
+        Map<int, Map<String, double>> posSeqDistribution,
+      }) result = await compute(_calculateDistribution, valueMap[firstColumn]!.values.map((sequence) => sequence.toString()).toList());
+      _distribution![secondColumn] = result;
+    }
+
+    return [_distribution![firstColumn]!, _distribution![secondColumn]!];
   }
 
   Future<({

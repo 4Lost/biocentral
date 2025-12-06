@@ -267,7 +267,7 @@ mixin NumericStats on ColumnWizard {
 
 mixin NumericCompareStats on ColumnWizard {
   Vector numericValues(String columnName);
-  Future<Iterable<String>> getKeys();
+  Iterable<String> getKeys();
 
   Future<double> max(String columnName) async {
     return numericValues(columnName).max();
@@ -333,7 +333,7 @@ mixin NumericCompareStats on ColumnWizard {
 
     _stdDev = {};
 
-    for (final key in await getKeys()) {
+    for (final key in getKeys()) {
       if (_stdDev == null) {
         final double variance = await this.variance(key);
         _stdDev![columnName] = sqrt(variance);
@@ -455,7 +455,7 @@ mixin CounterCompareStats on ColumnWizard {
   @override
   Map<String, Map<String, dynamic>> get valueMap;
   
-  Future<Iterable<String>> getKeys();
+  Iterable<String> getKeys();
 
   Map<String, Map<String, int>>? _countsByColumn;
   

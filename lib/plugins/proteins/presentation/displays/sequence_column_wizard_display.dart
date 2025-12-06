@@ -61,31 +61,31 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
   }
 
   Widget buildCompare(BuildContext context) {
-    return FutureBuilder<Map<String, ({
+    return FutureBuilder<List<({
       Map<String, Map<String, double>> lenDistribution,
       Map<String, double> seqDistribution,
       Map<int, Map<String, double>> posSeqDistribution,
     })>>(
-      future: (widget.columnWizard as SequenceCompareColumnWizard).distribution(),
+      future: (widget.columnWizard as SequenceCompareColumnWizard).distributionByKeys(compareColumns[0], compareColumns[1]),
       builder: (context, snapshot) {
+        if (compareColumns[0] == '' || compareColumns[1] == '') return compareSelection((widget.columnWizard as SequenceCompareColumnWizard).getKeys());
         if (!snapshot.hasData) return const CircularProgressIndicator();
-        if (compareColumns[0] == '' || compareColumns[1] == '') return compareSelection(snapshot.data!.keys);
         compareValues = [true, true, true];
 
         return Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            compareSelection(snapshot.data!.keys),
+            compareSelection((widget.columnWizard as SequenceCompareColumnWizard).getKeys()),
             buildCompareSequenceStats(compareColumns[0], compareColumns[1]),
             SizedBox(
               width: SizeConfig.safeBlockHorizontal(context) * 5,
             ),
             const Text('Length Distribution\n'),
-            buildLengthCompositionPlot([snapshot.data![compareColumns[0]]!.lenDistribution, snapshot.data![compareColumns[1]]!.lenDistribution]),
+            buildLengthCompositionPlot([snapshot.data![0].lenDistribution, snapshot.data![1].lenDistribution]),
             const Text('Protein Distribution\n'),
-            buildCompositionPlot([snapshot.data![compareColumns[0]]!.seqDistribution, snapshot.data![compareColumns[1]]!.seqDistribution]),
+            buildCompositionPlot([snapshot.data![0].seqDistribution, snapshot.data![1].seqDistribution]),
             const Text('Positional Protein Distribution\n'),
-            buildPositionalCompositionPlot([snapshot.data![compareColumns[0]]!.posSeqDistribution, snapshot.data![compareColumns[1]]!.posSeqDistribution]),
+            buildPositionalCompositionPlot([snapshot.data![0].posSeqDistribution, snapshot.data![1].posSeqDistribution]),
           ],
         );
       }
