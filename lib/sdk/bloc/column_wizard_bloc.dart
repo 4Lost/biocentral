@@ -29,9 +29,9 @@ final class ColumnWizardCalculateEvent extends ColumnWizardEvent {
 final class ColumnWizardBlocState extends Equatable {
   final Map<String, Map<String, dynamic>> columns;
 
-  final Map<List<String>, ColumnWizard>? columnWizards;
+  final Map<String, ColumnWizard>? columnWizards;
   final Widget Function(ColumnWizard)? customBuildFunction;
-  final List<String> selectedColumns;
+  final String selectedColumns;
   final ColumnOperationType? selectedOperationType;
 
   final ColumnWizardBlocStatus status;
@@ -49,7 +49,7 @@ final class ColumnWizardBlocState extends Equatable {
       : columns = const {},
         customBuildFunction = null,
         columnWizards = null,
-        selectedColumns = const [''],
+        selectedColumns = '',
         selectedOperationType = null,
         status = ColumnWizardBlocStatus.initial;
 
@@ -87,23 +87,24 @@ class ColumnWizardBloc extends Bloc<ColumnWizardEvent, ColumnWizardBlocState> {
     on<ColumnWizardSelectColumnEvent>((event, emit) async {
       if (event.selectedColumns.length == 1 && event.selectedColumns.first == '') return;
 
-      final Map<List<String>, ColumnWizard> columnWizards = state.columnWizards ?? {};
+      final Map<String, ColumnWizard> columnWizards = state.columnWizards ?? {};
       Widget Function(ColumnWizard)? customBuildFunction;
+      final String selectionKey = event.selectedColumns.where((x) => x.isNotEmpty).join('|');
 
-      ColumnWizard? columnWizard = columnWizards[event.selectedColumns];
+      ColumnWizard? columnWizard = columnWizards[selectionKey];
       if (columnWizard == null) {
         columnWizard = await _columnWizardRepository.getColumnWizardForColumn(
           columnNames: event.selectedColumns,
           valueMap: getValueMap(event),
         );
-        columnWizards[event.selectedColumns] = columnWizard;
+        columnWizards[selectionKey] = columnWizard;
       }
       customBuildFunction = _columnWizardRepository.getCustomBuildFunctionForColumnWizard(columnWizard);
 
       emit(
         state.copyWith(
           copyMap: {
-            'selectedColumn': event.selectedColumns,
+            'selectedColumn': selectionKey,
             'columnWizards': columnWizards,
             'customBuildFunction': customBuildFunction,
             'status': ColumnWizardBlocStatus.selected,

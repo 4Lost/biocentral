@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 class ColumnWizardOperationDisplayFactory {
   static Widget fromSelected({
     required ColumnOperationType columnOperationType,
-    required List<String> selectedColumnNames,
+    required String selectedColumnNames,
     required void Function(ColumnWizardOperation) onCalculateCallback,
   }) {
     switch (columnOperationType) {
@@ -37,7 +37,7 @@ class ColumnWizardOperationDisplayFactory {
 }
 
 abstract class ColumnWizardOperationDisplay<T extends ColumnWizardOperationResult> extends StatefulWidget {
-  final List<String> selectedColumnNames;
+  final String selectedColumnNames;
   final void Function(ColumnWizardOperation) onCalculateCallback;
 
   const ColumnWizardOperationDisplay({required this.selectedColumnNames, required this.onCalculateCallback, super.key});

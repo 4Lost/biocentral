@@ -17,7 +17,7 @@ class EmbeddingsColumnWizardFactory extends ColumnWizardFactory {
 
   @override
   TypeDetector getTypeDetector() {
-    return TypeDetector(EmbeddingManager, (value) => value is EmbeddingManager);
+    return TypeDetector(EmbeddingManager, (value) => value is EmbeddingManager || value is Map<String, dynamic> && value.values.every((v) => v is EmbeddingManager));
   }
 }
 
