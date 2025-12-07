@@ -15,7 +15,7 @@ class SequenceColumnWizardFactory extends ColumnWizardFactory {
 
   @override
   TypeDetector getTypeDetector() {
-    return TypeDetector(Sequence, (value) => value is Sequence);
+    return TypeDetector(Sequence, (value) => value is Sequence || value is Map<String, dynamic> && value.values.every((v) => v is Sequence));
   }
 }
 abstract class SequenceColumnWizard extends ColumnWizard {

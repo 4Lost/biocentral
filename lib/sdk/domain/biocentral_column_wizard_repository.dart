@@ -40,11 +40,7 @@ class BiocentralColumnWizardRepository {
     required Map<String, dynamic> valueMap,
     Type? columnType,
   }) async {
-    if (columnNames.length < 2 || columnNames[1] == '') {
-      columnType ??= await _detectColumnType(valueMap.values);
-    } else {
-      columnType ??= columnNames[0] == 'sequence' ? Sequence : await _detectColumnType(valueMap.values);
-    }
+    columnType ??= await _detectColumnType(valueMap.values);
     if (_factories.containsKey(columnType)) {
       final columnWizard = _factories[columnType]!.create(columnNames: columnNames, valueMap: valueMap, companion: companion) as T;
       return columnWizard;
