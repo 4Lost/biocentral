@@ -258,7 +258,7 @@ class _ColumnWizardGenericNotDiscreteDisplayState extends State<ColumnWizardGene
 
     return Text(maxDist['p_value'] as double > 0.5
       ? 'The distribution seems to be ${maxDist['dist_type']} distributed.'
-      : 'The distribution does not fullfill the properties of any tested distribution. But it is the closest to a ${distributionResults.elementAt(0)['dist_type']} distributed.');
+      : 'The distribution does not fullfill the properties of any tested distribution. But it is the closest to a ${distributionResults.elementAt(0)['dist_type']} distribution.');
   }
 
   Widget getMostLiklyCompare(List<List<Map<String, dynamic>>> distributionResults) {
@@ -268,15 +268,18 @@ class _ColumnWizardGenericNotDiscreteDisplayState extends State<ColumnWizardGene
     if (maxDistFirst['p_value'] as double > 0.5 && maxDistSecond['p_value'] as double > 0.5) {
       return Text('The first distribution seems to be ${maxDistFirst['dist_type']} distributed and the second distribution seems to be ${maxDistSecond['dist_type']} distributed.');
     } else if (maxDistFirst['p_value'] as double > 0.5) {
-      return Text('The first distribution seems to be ${maxDistFirst['dist_type']} distributed. The second distribution does not fullfill the properties of any tested distribution. But it is the closest to a ${distributionResults[1].elementAt(0)['dist_type']} distributed.');
+      return Text('The first distribution seems to be ${maxDistFirst['dist_type']} distributed. The second distribution does not fullfill the properties of any tested distribution. But it is the closest to a ${distributionResults[1].elementAt(0)['dist_type']} distribution.');
     } else if (maxDistSecond['p_value'] as double > 0.5) {
-      return Text('The second distribution seems to be ${maxDistSecond['dist_type']} distributed. The first distribution does not fullfill the properties of any tested distribution. But it is the closest to a ${distributionResults[0].elementAt(0)['dist_type']} distributed.');
+      return Text('The second distribution seems to be ${maxDistSecond['dist_type']} distributed. The first distribution does not fullfill the properties of any tested distribution. But it is the closest to a ${distributionResults[0].elementAt(0)['dist_type']} distribution.');
     } else {
-      return Text('Both distributions do not fullfill the properties of any tested distribution. But the first is the closest to a ${distributionResults[0].elementAt(0)['dist_type']} distributed and the second is the closest to a ${distributionResults[1].elementAt(0)['dist_type']} distributed.');
+      return Text('Both distributions do not fullfill the properties of any tested distribution. But the first is the closest to a ${distributionResults[0].elementAt(0)['dist_type']} distribution and the second is the closest to a ${distributionResults[1].elementAt(0)['dist_type']} distribution.');
     }
   }
 
   Widget compareSelection(Iterable<String> keys) {
+    if (!keys.contains(compareColumns[0])) compareColumns[0] = '';
+    if (!keys.contains(compareColumns[1])) compareColumns[1] = '';
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [

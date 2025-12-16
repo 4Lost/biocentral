@@ -25,7 +25,10 @@ class IntColumnWizardFactory extends ColumnWizardFactory {
 
   @override
   TypeDetector getTypeDetector() {
-    return TypeDetector(int, (value) => value is int || value is Map<String, dynamic> && value.values.every((v) => v is int));
+    return TypeDetector(int, (value) => value is int
+        || int.tryParse(value) != null
+        || value is Map<String, dynamic> && value.values.every((v) => v is int || int.tryParse(v) != null)
+      );
   }
 }
 
@@ -72,7 +75,10 @@ class DoubleColumnWizardFactory extends ColumnWizardFactory {
 
   @override
   TypeDetector getTypeDetector() {
-    return TypeDetector(double, (value) => value is double || value is Map<String, dynamic> && value.values.every((v) => v is double));
+    return TypeDetector(double, (value) => value is double
+        || double.tryParse(value) != null
+        || value is Map<String, dynamic> && value.values.every((v) => v is double || double.tryParse(v) != null)
+      );
   }
 }
 
@@ -138,14 +144,14 @@ abstract class StringColumnWizard extends ColumnWizard {
   }
 }
 
-class StringNormalColumnWizard extends ColumnWizard with CounterStats {
+class StringNormalColumnWizard extends StringColumnWizard with CounterStats {
   @override
   final Map<String, String> valueMap;
 
   StringNormalColumnWizard(super.columnName, this.valueMap, super.companion);
 }
 
-class StringCompareColumnWizard extends ColumnWizard with CounterCompareStats {
+class StringCompareColumnWizard extends StringColumnWizard with CounterCompareStats {
   @override
   final Map<String, Map<String, String>> valueMap;
 

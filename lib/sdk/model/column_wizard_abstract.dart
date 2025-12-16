@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:biocentral/sdk/data/biocentral_python_companion.dart';
 import 'package:biocentral/sdk/model/column_wizard_operations.dart';
+import 'package:biocentral/sdk/presentation/plots/biocentral_bar_compare_plot.dart';
 import 'package:biocentral/sdk/presentation/plots/biocentral_bar_plot.dart';
 import 'package:biocentral/sdk/util/biocentral_exception.dart';
 import 'package:biocentral/sdk/util/constants.dart';
@@ -461,7 +462,8 @@ mixin CounterCompareStats on ColumnWizard {
   
   Future<Map<String, int>> getCountsOfKey(String columnName) async {
     if (_countsByColumn != null && _countsByColumn![columnName] != null) return _countsByColumn![columnName]!;
-    if (_countsByColumn != null) _countsByColumn = await _getCounts();
+    _countsByColumn ??= await _getCounts();
+    print('test: ${_countsByColumn![columnName]!}');
 
     return _countsByColumn![columnName]!;
   }
@@ -484,9 +486,8 @@ mixin CounterCompareStats on ColumnWizard {
         if (_valueIsInvalid(value)) continue;
 
         final String valueString = value.toString();
-        counts.putIfAbsent(valueString, () => 0);
 
-        counts[valueString] = counts[valueString]! + 1;
+        counts[valueString] = (counts[valueString] ?? 0) + 1;
       }
        result[entry.key] = counts;
     }
@@ -547,6 +548,24 @@ mixin CounterCompareStats on ColumnWizard {
 
   Future<int> numberMissingOfKey(String key) async {
     return (await _getMissingIndices())[key]!.length;
+  }
+
+  Future<BiocentralBarComparePlotData> getBarPlotsData(String firstColumn, String secondColumn) async {
+    final List<Map<String, int>> dataPoints = await _getBarPlotsDataPoints(firstColumn, secondColumn);
+    return BiocentralBarComparePlotData.withoutErrors([dataPoints[0].map((k, v) => MapEntry(k, v.toDouble())), dataPoints[1].map((k, v) => MapEntry(k, v.toDouble()))]);
+  }
+
+  final Map<String, Map<String, int>> _barPlotDataPoints = {};
+
+  Future<List<Map<String, int>>> _getBarPlotsDataPoints(String firstColumn, String secondColumn) async {
+    if (_barPlotDataPoints.containsKey(firstColumn) && _barPlotDataPoints.containsKey(secondColumn)) {
+      return [_barPlotDataPoints[firstColumn]!, _barPlotDataPoints[secondColumn]!];
+    }
+
+    if (!_barPlotDataPoints.containsKey(firstColumn)) _barPlotDataPoints[firstColumn] = await getCountsOfKey(firstColumn);
+    if (!_barPlotDataPoints.containsKey(secondColumn)) _barPlotDataPoints[secondColumn] = await getCountsOfKey(secondColumn);
+
+    return [_barPlotDataPoints[firstColumn]!, _barPlotDataPoints[secondColumn]!];
   }
 }
 
