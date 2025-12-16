@@ -1,4 +1,5 @@
 import 'package:biocentral/sdk/model/column_wizard_abstract.dart';
+import 'package:biocentral/sdk/presentation/plots/biocentral_bar_compare_plot.dart';
 import 'package:biocentral/sdk/presentation/plots/biocentral_bar_plot.dart';
 import 'package:biocentral/sdk/presentation/widgets/biocentral_drop_down_menu.dart';
 import 'package:biocentral/sdk/util/constants.dart';
@@ -45,15 +46,16 @@ class _ColumnWizardGenericDiscreteDisplayState extends State<ColumnWizardGeneric
   Widget buildCompare(BuildContext context) {
     if (compareColumns[0] == '' || compareColumns[1] == '') return compareSelection((widget.columnWizard as CounterCompareStats).getKeys());
 
-    return Row(
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
         compareSelection((widget.columnWizard as CounterCompareStats).getKeys()),
-        //descriptiveStatisticsCounterStatsCompare(),
-        /*SizedBox(
+        descriptiveStatisticsCounterStatsCompare(),
+        SizedBox(
           width: SizeConfig.safeBlockHorizontal(context) * 5,
-        ),*/
-        //barDistributionPlotCompare(),
+        ),
+        barDistributionPlotCompare(),
       ],
     );
   }
@@ -64,7 +66,7 @@ class _ColumnWizardGenericDiscreteDisplayState extends State<ColumnWizardGeneric
       future: columnWizard.getCounts(), // Cached
       builder: (context, snapshot) {
         final List<Widget> classCounts = [];
-        if (snapshot.hasData && snapshot.data != null && snapshot.data!.isNotEmpty) {
+        if (snapshot.hasData && snapshot.data != null && snapshot.data!.isNotEmpty && snapshot.data!.keys.length <= 20) {
           classCounts.add(const Text('Class counts:'));
           classCounts.addAll(
             snapshot.data!.entries
@@ -90,6 +92,7 @@ class _ColumnWizardGenericDiscreteDisplayState extends State<ColumnWizardGeneric
   Widget descriptiveStatisticsCounterStatsCompare() {
     final CounterCompareStats columnWizard = widget.columnWizard as CounterCompareStats;
     return FutureBuilder<List<Map<String, int>>>(
+      key: ValueKey('stats-${compareColumns.join('-')}-'),
       future: columnWizard.getCountsOfKeys(compareColumns[0], compareColumns[1]), // Cached
       builder: (context, snapshot) {
         final List<Widget> classCounts = [];
@@ -192,19 +195,22 @@ class _ColumnWizardGenericDiscreteDisplayState extends State<ColumnWizardGeneric
 
   Widget barDistributionPlotCompare() {
     return Flexible(
-      child: FutureBuilder<BiocentralBarPlotData>(
-        future: widget.columnWizard.getBarPlotData(), // TODO add compare
+      child: FutureBuilder<BiocentralBarComparePlotData>(
+        future: (widget.columnWizard as CounterCompareStats).getBarPlotsData(compareColumns[0], compareColumns[1]), // TODO add compare
         builder: (context, snapshot) {
           if (snapshot.hasData && snapshot.data != null) {
-            final BiocentralBarPlotData barPlotData = snapshot.data!;
-            return SizedBox(
-              width: SizeConfig.screenWidth(context) * 0.4,
-              height: SizeConfig.screenHeight(context) * 0.3,
-              child: BiocentralBarPlot(
+            final BiocentralBarComparePlotData barPlotData = snapshot.data!;
+            final BiocentralBarComparePlot barComparePlot = BiocentralBarComparePlot(
                 data: barPlotData,
                 xAxisLabel: 'Categories',
                 yAxisLabel: 'Frequency',
-              ),
+              );
+            // Todo add index for shown window
+
+            return SizedBox(
+              width: SizeConfig.screenWidth(context) * 0.4,
+              height: SizeConfig.screenHeight(context) * 0.3,
+              child: barComparePlot,
             );
           } else {
             return const CircularProgressIndicator();
@@ -238,6 +244,9 @@ class _ColumnWizardGenericDiscreteDisplayState extends State<ColumnWizardGeneric
   }
 
   Widget compareSelection(Iterable<String> keys) {
+    if (!keys.contains(compareColumns[0])) compareColumns[0] = '';
+    if (!keys.contains(compareColumns[1])) compareColumns[1] = '';
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [

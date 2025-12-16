@@ -71,6 +71,8 @@ class _BiocentralBarPlotState extends State<BiocentralBarPlot> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.data.length < 1) return const Text('Not enough data to display bar plot.');
+    
     return LayoutBuilder(
       builder: (context, constraints) {
         return MouseRegion(

@@ -181,13 +181,30 @@ class _PositionalDistributionPainter extends CustomPainter {
 
       if (data[0][pos] != null) {
         _drawStackedBar(canvas, groupX, plotOffset.dy + plotSize.height,
-            barWidth, plotSize.height, data[0][pos]!.map((k, v) => MapEntry(k, v.toDouble())),);
+            barWidth, plotSize.height, data[0][pos]!.map((k, v) => MapEntry(k, v.toDouble())));
       }
 
       if (showSecond && data.length == 2 && data[1][pos] != null) {
         final double barX = groupX + barWidth;
-        _drawStackedBar(canvas, barX, plotOffset.dy + plotSize.height,
-            barWidth, plotSize.height, data[1][pos]!);
+        /*--
+        final double sum = dist.values.fold(0.0, (a, b) => a + b);
+        final Map<String, double> normalized =
+            sum == 0 ? dist : dist.map((k, v) => MapEntry(k, (v / sum) * 100));
+
+        final letters = normalized.keys.toList()..sort();
+        for (final aa in letters) {
+          final double perc = normalized[aa]!;
+          final double h = perc / 100 * totalHeight;
+
+          final rect = Rect.fromLTWH(barX, yBottom - h, barWidth, h);
+          final paint = Paint()..color = aminoColors[aa] ?? Colors.grey;
+          canvas.drawRect(rect, paint);
+          yBottom -= h;
+        }
+        --*/
+        final Paint linePaint = Paint()..color = Colors.white..strokeWidth = 4;
+        canvas.drawLine(Offset(barX, plotOffset.dy), Offset(barX, plotOffset.dy + plotSize.height), linePaint);
+        _drawStackedBar(canvas, barX, plotOffset.dy + plotSize.height, barWidth, plotSize.height, data[1][pos]!);
       }
 
       // Only draw 10 labels
@@ -197,9 +214,7 @@ class _PositionalDistributionPainter extends CustomPainter {
           textDirection: TextDirection.ltr,
         );
         tp.layout();
-        tp.paint(
-          canvas,
-          Offset(groupX + groupWidth / 2 - tp.width / 2, plotOffset.dy + plotSize.height + 5));
+        tp.paint(canvas, Offset(groupX + groupWidth / 2 - tp.width / 2, plotOffset.dy + plotSize.height + 5));
       }
     }
 

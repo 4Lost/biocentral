@@ -54,35 +54,19 @@ class SequenceNormalColumnWizard extends SequenceColumnWizard with CounterStats 
     return _composition!;
   }
 
-  ({
-    Map<String, Map<String, double>> lenDistribution,
-    Map<String, double> seqDistribution,
-    Map<int, Map<String, double>> posSeqDistribution,
-  })? _distribution;
+  DistributionStats? _distribution;
 
-  Future<({
-    Map<String, Map<String, double>> lenDistribution,
-    Map<String, double> seqDistribution,
-    Map<int, Map<String, double>> posSeqDistribution,
-  })> distribution() async {
+  Future<DistributionStats> distribution() async {
     if(_distribution != null) {
       return _distribution!;
     }
 
-    final ({
-    Map<String, Map<String, double>> lenDistribution,
-    Map<String, double> seqDistribution,
-    Map<int, Map<String, double>> posSeqDistribution,
-  }) result = await compute(_calculateDistribution, valueMap.values.map((sequence) => sequence.toString()).toList());
+    final DistributionStats result = await compute(_calculateDistribution, valueMap.values.map((sequence) => sequence.toString()).toList());
     _distribution = result;
     return _distribution!;
   }
 
-  Future<({
-    Map<String, Map<String, double>> lenDistribution,
-    Map<String, double> seqDistribution,
-    Map<int, Map<String, double>> posSeqDistribution,
-  })> _calculateDistribution(List<String> sequences) async {
+  Future<DistributionStats> _calculateDistribution(List<String> sequences) async {
     const letters = [
       'A', 'C', 'D', 'E', 'F', 'G', 'H', 'I',
       'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S',
@@ -159,11 +143,7 @@ class SequenceNormalColumnWizard extends SequenceColumnWizard with CounterStats 
       };
     }
 
-    return (
-      lenDistribution: lenDistribution,
-      seqDistribution: seqDistribution,
-      posSeqDistribution: posSeqDistribution,
-    );
+    return DistributionStats(lenDistribution, seqDistribution, posSeqDistribution);
   }
 }
 
@@ -207,48 +187,28 @@ class SequenceCompareColumnWizard extends SequenceColumnWizard with CounterCompa
     return _composition!;
   }
 
-  Map<String, ({
-    Map<String, Map<String, double>> lenDistribution,
-    Map<String, double> seqDistribution,
-    Map<int, Map<String, double>> posSeqDistribution,
-  })>? _distribution;
+  Map<String, DistributionStats>? _distribution;
 
-  Future<List<({
-    Map<String, Map<String, double>> lenDistribution,
-    Map<String, double> seqDistribution,
-    Map<int, Map<String, double>> posSeqDistribution,
-  })>> distributionByKeys(String firstColumn, String secondColumn) async {
+  Future<List<DistributionStats>> distributionByKeys(String firstColumn, String secondColumn) async {
     if(_distribution != null && _distribution![firstColumn] != null && _distribution![secondColumn] != null) {
       return [_distribution![firstColumn]!, _distribution![secondColumn]!];
     }
     _distribution ??= {};
 
     if (_distribution![firstColumn] == null) {
-      final ({
-        Map<String, Map<String, double>> lenDistribution,
-        Map<String, double> seqDistribution,
-        Map<int, Map<String, double>> posSeqDistribution,
-      }) result = await compute(_calculateDistribution, valueMap[firstColumn]!.values.map((sequence) => sequence.toString()).toList());
+      final DistributionStats result = await compute(_calculateDistribution, valueMap[firstColumn]!.values.map((sequence) => sequence.toString()).toList());
       _distribution![firstColumn] = result;
     }
 
     if (_distribution![secondColumn] == null) {
-      final ({
-        Map<String, Map<String, double>> lenDistribution,
-        Map<String, double> seqDistribution,
-        Map<int, Map<String, double>> posSeqDistribution,
-      }) result = await compute(_calculateDistribution, valueMap[firstColumn]!.values.map((sequence) => sequence.toString()).toList());
+      final DistributionStats result = await compute(_calculateDistribution, valueMap[secondColumn]!.values.map((sequence) => sequence.toString()).toList());
       _distribution![secondColumn] = result;
     }
 
     return [_distribution![firstColumn]!, _distribution![secondColumn]!];
   }
 
-  Future<({
-    Map<String, Map<String, double>> lenDistribution,
-    Map<String, double> seqDistribution,
-    Map<int, Map<String, double>> posSeqDistribution,
-  })> _calculateDistribution(List<String> sequences) async {
+  Future<DistributionStats> _calculateDistribution(List<String> sequences) async {
     const letters = [
       'A', 'C', 'D', 'E', 'F', 'G', 'H', 'I',
       'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S',
@@ -325,10 +285,14 @@ class SequenceCompareColumnWizard extends SequenceColumnWizard with CounterCompa
       };
     }
 
-    return (
-      lenDistribution: lenDistribution,
-      seqDistribution: seqDistribution,
-      posSeqDistribution: posSeqDistribution,
-    );
+    return DistributionStats( lenDistribution, seqDistribution, posSeqDistribution);
   }
+}
+
+class DistributionStats {
+  final Map<String, Map<String, double>> lenDistribution;
+  final Map<String, double> seqDistribution;
+  final Map<int, Map<String, double>> posSeqDistribution;
+
+  DistributionStats(this.lenDistribution, this.seqDistribution, this.posSeqDistribution);
 }

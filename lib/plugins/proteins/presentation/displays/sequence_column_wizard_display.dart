@@ -29,11 +29,7 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
   }
 
   Widget buildSingle(BuildContext context) {
-    return FutureBuilder<({
-      Map<String, Map<String, double>> lenDistribution,
-      Map<String, double> seqDistribution,
-      Map<int, Map<String, double>> posSeqDistribution,
-    })>(
+    return FutureBuilder<DistributionStats>(
       future: (widget.columnWizard as SequenceNormalColumnWizard).distribution(),
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const CircularProgressIndicator();
@@ -61,16 +57,14 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
   }
 
   Widget buildCompare(BuildContext context) {
-    return FutureBuilder<List<({
-      Map<String, Map<String, double>> lenDistribution,
-      Map<String, double> seqDistribution,
-      Map<int, Map<String, double>> posSeqDistribution,
-    })>>(
+    return FutureBuilder<List<DistributionStats>>(
+      key: ValueKey('${compareColumns[0]}-${compareColumns[1]}'),
       future: (widget.columnWizard as SequenceCompareColumnWizard).distributionByKeys(compareColumns[0], compareColumns[1]),
       builder: (context, snapshot) {
         if (compareColumns[0] == '' || compareColumns[1] == '') return compareSelection((widget.columnWizard as SequenceCompareColumnWizard).getKeys());
         if (!snapshot.hasData) return const CircularProgressIndicator();
         compareValues = [true, true, true];
+        final bool notEnoughData = snapshot.data![0].lenDistribution['length_kde']!.length > 1;
 
         return Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -80,8 +74,8 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
             SizedBox(
               width: SizeConfig.safeBlockHorizontal(context) * 5,
             ),
-            const Text('Length Distribution\n'),
-            buildLengthCompositionPlot([snapshot.data![0].lenDistribution, snapshot.data![1].lenDistribution]),
+            if (notEnoughData) const Text('Length Distribution\n'),
+            if (notEnoughData) buildLengthCompositionPlot([snapshot.data![0].lenDistribution, snapshot.data![1].lenDistribution]),
             const Text('Protein Distribution\n'),
             buildCompositionPlot([snapshot.data![0].seqDistribution, snapshot.data![1].seqDistribution]),
             const Text('Positional Protein Distribution\n'),
@@ -236,6 +230,9 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
   }
 
   Widget compareSelection(Iterable<String> keys) {
+    if (!keys.contains(compareColumns[0])) compareColumns[0] = '';
+    if (!keys.contains(compareColumns[1])) compareColumns[1] = '';
+
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -247,7 +244,13 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
               .toList(),
             label: const Text('Select first..'),
             initialSelection: compareColumns[0],
-            onSelected: (String? value) => WidgetsBinding.instance.addPostFrameCallback((_) => setState(() => compareColumns = [value ?? '', compareColumns[1]],),),
+            onSelected: (String? value) {
+              if (value == compareColumns[0] || compareColumns[1] == '' || value == '') {
+                compareColumns = [value ?? '', compareColumns[1]];
+                return;
+              }
+              setState(() => compareColumns = [value ?? '', compareColumns[1]]);
+            },
           ),),
           const SizedBox(width: 16),
           Expanded(child: BiocentralDropdownMenu<String>(
@@ -256,7 +259,13 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
               .toList(),
             label: const Text('Select second..'),
             initialSelection: compareColumns[1],
-            onSelected: (String? value) => WidgetsBinding.instance.addPostFrameCallback((_) => setState(() => compareColumns = [compareColumns[0], value ?? ''],),),
+            onSelected: (String? value)  {
+              if (value == compareColumns[1] || compareColumns[0] == '' || value == '') {
+                compareColumns = [compareColumns[0], value ?? ''];
+                return;
+              }
+              setState(() => compareColumns = [compareColumns[0], value ?? '']);
+            },
           ),),
         ],),
         const Text('Please select which Data you want to compare.'),
