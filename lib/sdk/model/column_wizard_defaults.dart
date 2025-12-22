@@ -26,7 +26,7 @@ class IntColumnWizardFactory extends ColumnWizardFactory {
   @override
   TypeDetector getTypeDetector() {
     return TypeDetector(int, (value) => value is int
-        || int.tryParse(value) != null
+        || value is! Map<String, dynamic> && int.tryParse(value) != null
         || value is Map<String, dynamic> && value.values.every((v) => v is int || int.tryParse(v) != null)
       );
   }
@@ -76,7 +76,7 @@ class DoubleColumnWizardFactory extends ColumnWizardFactory {
   @override
   TypeDetector getTypeDetector() {
     return TypeDetector(double, (value) => value is double
-        || double.tryParse(value) != null
+        || value is! Map<String, dynamic> && double.tryParse(value) != null
         || value is Map<String, dynamic> && value.values.every((v) => v is double || double.tryParse(v) != null)
       );
   }

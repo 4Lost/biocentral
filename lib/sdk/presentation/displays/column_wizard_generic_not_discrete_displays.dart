@@ -43,7 +43,7 @@ class _ColumnWizardGenericNotDiscreteDisplayState extends State<ColumnWizardGene
   Widget buildCompare(BuildContext context) {
     if (compareColumns[0] == '' || compareColumns[1] == '') return compareSelection((widget.columnWizard as NumericCompareStats).getKeys());
 
-    return Row(
+    return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         compareSelection((widget.columnWizard as NumericCompareStats).getKeys()),

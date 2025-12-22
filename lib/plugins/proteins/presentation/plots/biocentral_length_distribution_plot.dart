@@ -1,14 +1,19 @@
 import 'dart:math' as math;
 import 'package:biocentral/sdk/data/biocentral_background_data.dart';
+import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 
 class BiocentralLengthDistributionPlot extends StatefulWidget {
-  final List<Map<String, Map<String, double>>> distributions;
+  final List<List<double>> distributions;
+  final List<Map<String, double>> stats;
+  final double bandwidth;
   final bool showSecond;
 
   const BiocentralLengthDistributionPlot({
     required this.distributions,
+    required this.stats,
     super.key,
+    this.bandwidth = 20,
     this.showSecond = true,
   });
 
@@ -17,19 +22,23 @@ class BiocentralLengthDistributionPlot extends StatefulWidget {
 }
 
 class _BiocentralLengthDistributionPlotState extends State<BiocentralLengthDistributionPlot> {
-  late List<Map<String, Map<String, double>>> _distributions;
+  late List<List<double>> _distributions;
+  late List<Map<String, double>> _stats;
 
   @override
   void initState() {
     _distributions = List.from(widget.distributions);
+    _stats = List.from(widget.stats);
     if (_distributions.length < 2) _loadData();
     super.initState();
   }
 
   Future<void> _loadData() async {
-    final data = await BiocentralBackgroundData.getAALengthDistribution();
+    final dist = await BiocentralBackgroundData.getAALengthDistribution();
+    final stats = await BiocentralBackgroundData.getAALengthStats();
     setState(() {
-      _distributions.add(data);
+      _distributions.add(dist);
+      _stats.add(stats);
     });
   }
 
@@ -41,6 +50,8 @@ class _BiocentralLengthDistributionPlotState extends State<BiocentralLengthDistr
           size: Size(constraints.maxWidth, constraints.maxHeight),
           painter: _LengthDistributionPainter(
             _distributions,
+            _stats,
+            widget.bandwidth,
             widget.showSecond,
           ),
         );
@@ -50,11 +61,13 @@ class _BiocentralLengthDistributionPlotState extends State<BiocentralLengthDistr
 }
 
 class _LengthDistributionPainter extends CustomPainter {
-  final List<Map<String, Map<String, double>>> data;
+  final List<List<double>> distributions;
+  final List<Map<String, double>> stats;
+  final double bandwidth;
   final bool showSecond;
   final TextStyle plotTextStyle = const TextStyle(color: Colors.black, fontSize: 12);
 
-  _LengthDistributionPainter(this.data, this.showSecond);
+  _LengthDistributionPainter(this.distributions, this.stats, this.bandwidth, this.showSecond);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -69,38 +82,31 @@ class _LengthDistributionPainter extends CustomPainter {
       size.height - topPadding - bottomPadding,
     );
 
-    // Extract KDE points
-    final List<_Point> kdePoints = data[0]['length_kde']!.entries.map((entry) => _Point(double.parse(entry.key), entry.value)).toList();
+    final List<_Point> kdePoints = getKdePlotPoints(distributions[0], stats[0], plotOffset);
     List<_Point> bgKdePoints = [];
-
-    if (showSecond && data.length == 2) {
-      bgKdePoints = data[1]['length_kde']!.entries.map((entry) => _Point(double.parse(entry.key), entry.value)).toList();
+    if (showSecond && distributions.length == 2) {
+      bgKdePoints = getKdePlotPoints(distributions[1], stats[1], plotOffset);
     }
 
-    // Determine x-axis range based on non-zero density
-    final Offset cutoff = Offset(
-        kdePoints.firstWhere((p) => p.y > 0.0, orElse: () => kdePoints.first).x, 
-        kdePoints.lastWhere((p) => p.y > 0.0, orElse: () => kdePoints.last).x);
-   
+    Offset range = Offset(kdePoints[0].x, kdePoints[kdePoints.length - 1].x);
+    if (showSecond && distributions.length == 2) {
+      range = Offset(
+        math.min(range.dx, bgKdePoints[0].x),
+        math.max(range.dy, bgKdePoints[bgKdePoints.length - 1].x),
+      );
+    }
     // Find global max density across all datasets
     double maxDensity = 0.0;
-
-    for (final entry in data[0]['length_kde']!.entries) {
-      maxDensity = math.max(maxDensity, entry.value);
+    maxDensity = math.max(maxDensity, kdePoints.map((p) => p.y).reduce(math.max));
+    if (showSecond && distributions.length == 2) {
+      maxDensity = math.max(maxDensity, bgKdePoints.map((p) => p.y).reduce(math.max));
     }
 
-    if (showSecond && data.length == 2) {
-      for (final entry in data[1]['length_kde']!.entries) {
-        maxDensity = math.max(maxDensity, entry.value);
-      }
-    }
-
-    kdePlot(canvas, kdePoints, maxDensity, cutoff, plotSize, plotOffset, false);
-    highlightMeanAndStdDev(canvas, plotSize, plotOffset, data[0]['length_stats']!, cutoff.dx, cutoff.dy, false);
-    
-    if (showSecond && data.length == 2) {
-      kdePlot(canvas, bgKdePoints, maxDensity, cutoff, plotSize, plotOffset, true);
-    highlightMeanAndStdDev(canvas, plotSize, plotOffset, data[1]['length_stats']!, cutoff.dx, cutoff.dy, true);
+    drawKdePlot(canvas, kdePoints, range, plotSize, plotOffset, maxDensity, false);
+    highlightMeanAndStdDev(canvas, plotSize, plotOffset, range.dx, range.dy, stats[0]['mean']!, stats[0]['std_dev']!, false);
+    if (showSecond && distributions.length == 2) {
+      drawKdePlot(canvas, bgKdePoints, range, plotSize, plotOffset, maxDensity, true);
+      highlightMeanAndStdDev(canvas, plotSize, plotOffset, range.dx, range.dy, stats[1]['mean']!, stats[1]['std_dev']!, true);
     }
 
     // Draw axes
@@ -122,7 +128,7 @@ class _LengthDistributionPainter extends CustomPainter {
     // Draw x-axis ticks
     final int xTickCount = 5;
     for (int i = 0; i <= xTickCount; i++) {
-      final double value = cutoff.dx + (i / xTickCount) * (cutoff.dy - cutoff.dx);
+      final double value = range.dx + (i / xTickCount) * (range.dy - range.dx); //TODO fix for two with cutoff
       final double x = plotOffset.dx + (i / xTickCount) * plotSize.width;
       canvas.drawLine(Offset(x, plotSize.height + plotOffset.dy),
           Offset(x, plotSize.height + plotOffset.dy + 5), axesPaint);
@@ -173,9 +179,29 @@ class _LengthDistributionPainter extends CustomPainter {
     drawLegend(canvas, size);
   }
 
-  void kdePlot(Canvas canvas, List<_Point> kdePoints, double maxDensity, Offset cutoff, Size plotSize, Offset plotOffset, bool isCompare) {
-    kdePoints = _smoothend(kdePoints);
+  List<_Point> getKdePlotPoints(List<double> data, Map<String, double> stats, Offset plotOffset) {
+    // Calculate metrics
+    final double range = stats['max']! - stats['min']!;
 
+    // Compute KDE
+    final List<_Point> kdePoints = [];
+    for (int i = 0; i <= 100; i++) {
+      final double x = stats['min']! + (i / 100) * range;
+      double y = plotOffset.dy;
+      for (final value in data) {
+        y += math.exp(-math.pow(x - value, 2) / (2 * bandwidth * bandwidth));
+      }
+      y /= data.length * bandwidth * math.sqrt(2 * math.pi);
+      kdePoints.add(_Point(x, y));
+    }
+
+    // Normalize KDE
+    final double sumKDE = kdePoints.map((p) => p.y).sum;
+    final List<_Point> normalizedKDE = kdePoints.map((p) => _Point(p.x, p.y / sumKDE)).toList();
+    return normalizedKDE;
+  }
+
+  void drawKdePlot(Canvas canvas, List<_Point> kdePoints, Offset range, Size plotSize, Offset plotOffset, double maxDensity, bool isCompare) {
     // Draw KDE curve (already normalized)
     final Paint kdePaint = Paint()
       ..color = isCompare ? Colors.pink : Colors.blue
@@ -183,93 +209,67 @@ class _LengthDistributionPainter extends CustomPainter {
       ..strokeWidth = 2;
 
     final Path kdePath = Path();
-    bool first = true;
-
+    bool firstPoint = true;
+    
+    if (kdePoints[0].x != range.dx) {
+      kdePath.moveTo(plotOffset.dx, plotOffset.dy + plotSize.height);
+      kdePath.lineTo(plotOffset.dx + (kdePoints[0].x - range.dx) / (range.dy - range.dx) * plotSize.width, plotOffset.dy + plotSize.height);
+    }
     for (int i = 0; i < kdePoints.length; i++) {
       final _Point point = kdePoints[i];
-      if (point.x < cutoff.dx || point.x > cutoff.dy) {
-        continue;
-      }
-      final double x = plotOffset.dx + (point.x - cutoff.dx) / (cutoff.dy - cutoff.dx) * plotSize.width;
+      final double x = plotOffset.dx + (point.x - range.dx) / (range.dy - range.dx) * plotSize.width;
       final double y = plotOffset.dy + plotSize.height * (1 - point.y / maxDensity);
-      if (first) {
+      if (firstPoint) {
         kdePath.moveTo(x, y);
-        first = false;
+        firstPoint = false;
       } else {
         kdePath.lineTo(x, y);
       }
+    }
+    if (kdePoints[kdePoints.length - 1].x != range.dy) {
+      kdePath.lineTo(plotOffset.dx + (kdePoints[kdePoints.length - 1].x - range.dx) / (range.dy - range.dx) * plotSize.width, plotOffset.dy + plotSize.height);
+      kdePath.lineTo(plotOffset.dx + plotSize.width, plotOffset.dy + plotSize.height);
     }
 
     canvas.drawPath(kdePath, kdePaint);
   }
 
-  List<_Point> _smoothend(List<_Point> points) {
-    if (points.isEmpty) return [];
-    if (points.length <= 100) return points;
-
-    // Sort points by x value
-    points.sort((a, b) => a.x.compareTo(b.x));
-
-    final int targetCount = 100;
-    final int chunkSize = (points.length / targetCount).floor();
-    final List<_Point> reduced = [];
-
-    for (int i = 0; i < points.length; i += chunkSize) {
-      // Get the chunk; adjust to not exceed the list length
-      final int end = (i + chunkSize < points.length) ? i + chunkSize : points.length;
-      final List<_Point> chunk = points.sublist(i, end);
-
-      // Average x and y in this chunk
-      final double avgX = chunk.map((p) => p.x).reduce((a, b) => a + b) / chunk.length;
-      final double avgY = chunk.map((p) => p.y).reduce((a, b) => a + b) / chunk.length;
-
-      reduced.add(_Point(avgX, avgY));
-      if (reduced.length >= targetCount) break; // stop once we have 200 points
-    }
-
-    return reduced;
-  }
-
-  void highlightMeanAndStdDev(Canvas canvas, Size plotSize, Offset plotOffset, Map<String, double> stats, double leftCutoff, double rightCutoff, bool isBackground) {
-    if (leftCutoff > stats['mean']! || stats['mean']! > rightCutoff) return;
-
-    final Color color = !isBackground ? Colors.green : Colors.purple;
-
+  void highlightMeanAndStdDev(
+      Canvas canvas, Size plotSize, Offset plotOffset, double minValue, double maxValue, double mean, double stdDev, bool isCompare,) {
     final Paint meanPaint = Paint()
-      ..color = color
+      ..color = isCompare? Colors.purple : Colors.green
       ..strokeWidth = 2
       ..style = PaintingStyle.stroke;
 
-    // Mean
-    final double meanX = plotOffset.dx + (stats['mean']! - leftCutoff) / (rightCutoff - leftCutoff) * plotSize.width;
+    final double meanX = plotOffset.dx + (mean - minValue) / (maxValue - minValue) * (plotSize.width - plotOffset.dx);
+
+    // Draw mean line
     canvas.drawLine(Offset(meanX, plotOffset.dy), Offset(meanX, plotOffset.dy + plotSize.height), meanPaint);
-    
-    // std deviation range
-    final double leftStdDevX = stats['mean']! - stats['std_dev']! < leftCutoff ? plotOffset.dx :
-      plotOffset.dx + (stats['mean']! - stats['std_dev']! - leftCutoff) / (rightCutoff - leftCutoff) * plotSize.width;
-    final double rightStdDevX = stats['mean']! + stats['std_dev']! > rightCutoff ? plotOffset.dy :
-      plotOffset.dx + (stats['mean']! + stats['std_dev']! - leftCutoff) / (rightCutoff - leftCutoff) * plotSize.width;
+
+    // Draw standard deviation range
+    final double leftStdDevX = plotOffset.dx + (mean - stdDev - minValue) / (maxValue - minValue) * plotSize.width;
+    final double rightStdDevX = plotOffset.dx + (mean + stdDev - minValue) / (maxValue - minValue) * plotSize.width;
 
     canvas.drawLine(Offset(leftStdDevX, plotOffset.dy + plotSize.height),
-        Offset(rightStdDevX, plotOffset.dy + plotSize.height), meanPaint);
+        Offset(rightStdDevX, plotOffset.dy + plotSize.height), meanPaint,);
 
-    // Labels
+    // Add labels
     final TextPainter meanPainter = TextPainter(
-      text: TextSpan(text: 'Mean', style: plotTextStyle.copyWith(color: color)),
+      text: TextSpan(text: 'Mean', style: plotTextStyle.copyWith(color: meanPaint.color)),
       textDirection: TextDirection.ltr,
     );
     meanPainter.layout();
     meanPainter.paint(canvas, Offset(meanX - meanPainter.width / 2, plotOffset.dy - 15));
 
     final TextPainter stdDevPainter = TextPainter(
-      text: TextSpan(text: '±1 StdDev', style: plotTextStyle.copyWith(color: color)),
+      text: TextSpan(text: '±1 StdDev', style: plotTextStyle.copyWith(color: meanPaint.color)),
       textDirection: TextDirection.ltr,
     );
     stdDevPainter.layout();
     stdDevPainter.paint(canvas,
-        Offset((leftStdDevX + rightStdDevX) / 2 - stdDevPainter.width / 2,
-            plotOffset.dy + plotSize.height - 15));
+        Offset((leftStdDevX + rightStdDevX) / 2 - stdDevPainter.width / 2, plotOffset.dy + plotSize.height - 15),);
   }
+
 
   void drawLegend(Canvas canvas, Size size) {
     final double legendX = size.width - 130;
@@ -280,8 +280,8 @@ class _LengthDistributionPainter extends CustomPainter {
     final entries = [
       {'label': 'Distribution', 'color': Colors.blue}, // %TODO : better names
       {'label': 'Distribution Stats', 'color': Colors.green}, // %TODO : better names
-      if (showSecond && data.length == 2) {'label': 'Compare Data', 'color': Colors.pink},
-      if (showSecond && data.length == 2) {'label': 'Compare Data Stats', 'color': Colors.purple},
+      if (showSecond && distributions.length == 2) {'label': 'Compare Data', 'color': Colors.pink},
+      if (showSecond && distributions.length == 2) {'label': 'Compare Data Stats', 'color': Colors.purple},
     ];
 
     for (final entry in entries) {

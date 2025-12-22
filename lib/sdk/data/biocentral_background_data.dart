@@ -4,19 +4,28 @@ import 'package:flutter/services.dart';
 class BiocentralBackgroundData {
   static final String _backgroundPath = 'assets/background_dist/distribution_AA.json';
 
-  static Future<Map<String, Map<String, double>>> getAALengthDistribution() async {
-
+  static Future<List<double>> getAALengthDistribution() async {
     final raw = await rootBundle.loadString(_backgroundPath);
-    final Map<String, dynamic> jsonData = json.decode(raw);
-    final Map<String, Map<String, double>> parsed = {};
+    final Map<String, double> jsonData = Map<String, double>.from((json.decode(raw) as Map<String, dynamic>)['length_kde']);
 
-    Map<String, dynamic> dist = jsonData['length_stats'];
-    parsed['length_stats'] = Map<String, double>.from(dist);
+    final List<double> dist = [];
 
-    dist = jsonData['length_kde'];
-    parsed['length_kde'] = Map<String, double>.from(dist);
+    for (MapEntry<String, double> entry in jsonData.entries) {
+      for (int i = 0; i < entry.value; i++) {
+        dist.add(double.parse(entry.key));
+      }
+    }
+    
+    return dist;
+  }
 
-    return parsed;
+  static Future<Map<String, double>> getAALengthStats() async {
+    final raw = await rootBundle.loadString(_backgroundPath);
+
+    final Map<String, dynamic> dist = (json.decode(raw) as Map<String, dynamic>)['length_stats'];
+    final Map<String, double> stats = Map<String, double>.from(dist);
+
+    return stats;
   }
 
   static Future<Map<String, double>> getAASequenceDistribution() async {

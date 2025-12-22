@@ -43,7 +43,7 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
             ),
             const Text('Length Distribution\n'),
             toggleCompareButton(1),
-            buildLengthCompositionPlot([snapshot.data!.lenDistribution]),
+            buildLengthCompositionPlot([snapshot.data!.lenDistribution], [snapshot.data!.lenStats]),
             const Text('Protein Distribution\n'),
             toggleCompareButton(2),
             buildCompositionPlot([snapshot.data!.seqDistribution]),
@@ -64,7 +64,7 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
         if (compareColumns[0] == '' || compareColumns[1] == '') return compareSelection((widget.columnWizard as SequenceCompareColumnWizard).getKeys());
         if (!snapshot.hasData) return const CircularProgressIndicator();
         compareValues = [true, true, true];
-        final bool notEnoughData = snapshot.data![0].lenDistribution['length_kde']!.length > 1;
+        final bool notEnoughData = snapshot.data![0].lenDistribution.length > 1;
 
         return Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -75,7 +75,10 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
               width: SizeConfig.safeBlockHorizontal(context) * 5,
             ),
             if (notEnoughData) const Text('Length Distribution\n'),
-            if (notEnoughData) buildLengthCompositionPlot([snapshot.data![0].lenDistribution, snapshot.data![1].lenDistribution]),
+            if (notEnoughData) buildLengthCompositionPlot(
+                [snapshot.data![0].lenDistribution, snapshot.data![1].lenDistribution],
+                [snapshot.data![0].lenStats, snapshot.data![1].lenStats],
+              ),
             const Text('Protein Distribution\n'),
             buildCompositionPlot([snapshot.data![0].seqDistribution, snapshot.data![1].seqDistribution]),
             const Text('Positional Protein Distribution\n'),
@@ -311,12 +314,12 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
     );
   }
 
-  Widget buildLengthCompositionPlot(List<Map<String, Map<String, double>>> data) {
+  Widget buildLengthCompositionPlot(List<List<double>> lenDistributions, List<Map<String, double>> lenStats) {
     return SizedBox(
       key: Key('1-${compareColumns[0]}-${compareColumns[1]}'),
       width: 2000,
       height: 500,
-      child: BiocentralLengthDistributionPlot(distributions: data, showSecond: compareValues[0],),
+      child: BiocentralLengthDistributionPlot(distributions: lenDistributions, stats: lenStats, showSecond: compareValues[0],),
     );
   }
 

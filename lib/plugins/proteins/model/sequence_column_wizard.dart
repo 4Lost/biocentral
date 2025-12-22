@@ -61,89 +61,9 @@ class SequenceNormalColumnWizard extends SequenceColumnWizard with CounterStats 
       return _distribution!;
     }
 
-    final DistributionStats result = await compute(_calculateDistribution, valueMap.values.map((sequence) => sequence.toString()).toList());
+    final DistributionStats result = await compute(DistributionStats.calculateDistribution, valueMap.values.map((sequence) => sequence.toString()).toList());
     _distribution = result;
     return _distribution!;
-  }
-
-  Future<DistributionStats> _calculateDistribution(List<String> sequences) async {
-    const letters = [
-      'A', 'C', 'D', 'E', 'F', 'G', 'H', 'I',
-      'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S',
-      'T', 'V', 'W', 'Y', 'X', 'U'
-    ];
-
-    // Initialize results
-    final Map<String, Map<String, double>> lenDistribution = {};
-    final Map<String, double> seqDistribution = {for (final l in letters) l: 0};
-    final Map<int, Map<String, double>> posSeqDistribution = {};
-    lenDistribution['length_kde'] = {};
-    lenDistribution['length_stats'] = {};
-
-    final List<int> lengths = [];
-
-    // Single pass through all sequences
-    for (final seq in sequences) {
-      final len = seq.length;
-      lengths.add(len);
-
-      // Update KDE-style length counts
-      lenDistribution['length_kde']![len.toString()] =
-          (lenDistribution['length_kde']![len.toString()] ?? 0) + 1;
-
-      // Update per-character and positional distributions
-      for (var i = 0; i < seq.length; i++) {
-        final char = seq[i];
-        if (letters.contains(char)) {
-          seqDistribution[char] = (seqDistribution[char] ?? 0) + 1;
-
-          posSeqDistribution.putIfAbsent(
-            i,
-            () => {for (final l in letters) l: 0},
-          );
-          posSeqDistribution[i]![char] =
-              (posSeqDistribution[i]![char] ?? 0) + 1;
-        }
-      }
-    }
-
-    final totalCounts = lenDistribution['length_kde']!.values.reduce((a, b) => a + b);
-    lenDistribution['length_kde']!.updateAll((key, value) => value / totalCounts);
-
-    if (lengths.isNotEmpty) {
-      lengths.sort();
-
-      final int n = lengths.length;
-      final double mean = lengths.reduce((a, b) => a + b) / n;
-
-      final double variance = lengths
-              .map((x) => pow(x - mean, 2))
-              .reduce((a, b) => a + b) /
-          n;
-
-      final double stdDev = sqrt(variance);
-
-      double percentile(List<int> sortedList, double p) {
-        final double rank = p * (sortedList.length - 1);
-        final int lower = rank.floor();
-        final int upper = rank.ceil();
-        if (lower == upper) return sortedList[lower].toDouble();
-        final double weight = rank - lower;
-        return sortedList[lower] * (1 - weight) + sortedList[upper] * weight;
-      }
-
-      lenDistribution['length_stats'] = {
-        'min': lengths.first.toDouble(),
-        'max': lengths.last.toDouble(),
-        'mean': mean,
-        'variance': variance,
-        'std_dev': stdDev,
-        'p01': percentile(lengths, 0.01),
-        'p99': percentile(lengths, 0.99),
-      };
-    }
-
-    return DistributionStats(lenDistribution, seqDistribution, posSeqDistribution);
   }
 }
 
@@ -196,42 +116,44 @@ class SequenceCompareColumnWizard extends SequenceColumnWizard with CounterCompa
     _distribution ??= {};
 
     if (_distribution![firstColumn] == null) {
-      final DistributionStats result = await compute(_calculateDistribution, valueMap[firstColumn]!.values.map((sequence) => sequence.toString()).toList());
+      final DistributionStats result = await compute(DistributionStats.calculateDistribution, valueMap[firstColumn]!.values.map((sequence) => sequence.toString()).toList());
       _distribution![firstColumn] = result;
     }
 
     if (_distribution![secondColumn] == null) {
-      final DistributionStats result = await compute(_calculateDistribution, valueMap[secondColumn]!.values.map((sequence) => sequence.toString()).toList());
+      final DistributionStats result = await compute(DistributionStats.calculateDistribution, valueMap[secondColumn]!.values.map((sequence) => sequence.toString()).toList());
       _distribution![secondColumn] = result;
     }
 
     return [_distribution![firstColumn]!, _distribution![secondColumn]!];
   }
+}
 
-  Future<DistributionStats> _calculateDistribution(List<String> sequences) async {
+class DistributionStats {
+  final List<double> lenDistribution;
+  final Map<String, double> lenStats;
+  final Map<String, double> seqDistribution;
+  final Map<int, Map<String, double>> posSeqDistribution;
+
+  DistributionStats(this.lenDistribution, this.lenStats, this.seqDistribution, this.posSeqDistribution);
+
+  static Future<DistributionStats> calculateDistribution(List<String> sequences) async {
     const letters = [
       'A', 'C', 'D', 'E', 'F', 'G', 'H', 'I',
       'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S',
-      'T', 'V', 'W', 'Y', 'X', 'U'
+      'T', 'V', 'W', 'Y', 'X', 'U',
     ];
 
     // Initialize results
-    final Map<String, Map<String, double>> lenDistribution = {};
+    final List<double> lenDistribution = [];
+    Map<String, double> lenStats = {};
     final Map<String, double> seqDistribution = {for (final l in letters) l: 0};
     final Map<int, Map<String, double>> posSeqDistribution = {};
-    lenDistribution['length_kde'] = {};
-    lenDistribution['length_stats'] = {};
-
-    final List<int> lengths = [];
 
     // Single pass through all sequences
     for (final seq in sequences) {
       final len = seq.length;
-      lengths.add(len);
-
-      // Update KDE-style length counts
-      lenDistribution['length_kde']![len.toString()] =
-          (lenDistribution['length_kde']![len.toString()] ?? 0) + 1;
+      lenDistribution.add(len.toDouble());
 
       // Update per-character and positional distributions
       for (var i = 0; i < seq.length; i++) {
@@ -249,10 +171,8 @@ class SequenceCompareColumnWizard extends SequenceColumnWizard with CounterCompa
       }
     }
 
-    final totalCounts = lenDistribution['length_kde']!.values.reduce((a, b) => a + b);
-    lenDistribution['length_kde']!.updateAll((key, value) => value / totalCounts);
-
-    if (lengths.isNotEmpty) {
+    if (lenDistribution.isNotEmpty) {
+      final List<double> lengths = List.of(lenDistribution);
       lengths.sort();
 
       final int n = lengths.length;
@@ -265,7 +185,7 @@ class SequenceCompareColumnWizard extends SequenceColumnWizard with CounterCompa
 
       final double stdDev = sqrt(variance);
 
-      double percentile(List<int> sortedList, double p) {
+      double percentile(List<double> sortedList, double p) {
         final double rank = p * (sortedList.length - 1);
         final int lower = rank.floor();
         final int upper = rank.ceil();
@@ -274,7 +194,7 @@ class SequenceCompareColumnWizard extends SequenceColumnWizard with CounterCompa
         return sortedList[lower] * (1 - weight) + sortedList[upper] * weight;
       }
 
-      lenDistribution['length_stats'] = {
+      lenStats = {
         'min': lengths.first.toDouble(),
         'max': lengths.last.toDouble(),
         'mean': mean,
@@ -285,14 +205,6 @@ class SequenceCompareColumnWizard extends SequenceColumnWizard with CounterCompa
       };
     }
 
-    return DistributionStats( lenDistribution, seqDistribution, posSeqDistribution);
+    return DistributionStats(lenDistribution, lenStats, seqDistribution, posSeqDistribution);
   }
-}
-
-class DistributionStats {
-  final Map<String, Map<String, double>> lenDistribution;
-  final Map<String, double> seqDistribution;
-  final Map<int, Map<String, double>> posSeqDistribution;
-
-  DistributionStats(this.lenDistribution, this.seqDistribution, this.posSeqDistribution);
 }
