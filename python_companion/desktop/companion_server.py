@@ -26,6 +26,12 @@ def test_normal_distribution():
     result = functionality.test_distributions(
         request.json.get('data'), request.json.get('types'))
     return jsonify(result)
+ 
+ 
+@app.route('/get_scales', methods=['POST'])
+def read_h5():
+    result = functionality.get_scales(request.json)
+    return jsonify(result)
 
 
 @app.route('/read_h5', methods=['POST'])

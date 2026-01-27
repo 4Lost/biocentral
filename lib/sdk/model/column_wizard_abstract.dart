@@ -109,7 +109,7 @@ abstract class ColumnWizard {
   }
 
   Set<ColumnOperationType> getAvailableOperations() {
-    return {ColumnOperationType.toBinary, ColumnOperationType.removeMissing, ColumnOperationType.calculateLength};
+    return {ColumnOperationType.toBinary, ColumnOperationType.removeMissing, ColumnOperationType.calculateLength};//, ColumnOperationType.calculateSupriseFactor
   }
 
   Future<Map<String, int>> _getBarPlotDataPoints() async {

@@ -149,5 +149,20 @@ class ColumnWizardCalculateLengthOperation extends ColumnWizardOperation<ColumnW
   }
 }
 
+class ColumnWizardcalculateSupriseFactorOperation extends ColumnWizardOperation<ColumnWizardAddOperationResult> {
+  ColumnWizardcalculateSupriseFactorOperation(super.newColumnName);
+
+  @override
+  Future<ColumnWizardAddOperationResult> operate(ColumnWizard columnWizard) async {
+    // Map<String, Map<String, double>> scalevalues
+    //Map<String, ScaleStats> scaleStats
+    //Map<String, double> lenStats;
+    final Map<String, int> result = Map.fromEntries(
+        columnWizard.valueMap.entries.map((entry) => MapEntry(entry.key, entry.value.toString().length)));
+
+    return ColumnWizardAddOperationResult(newColumnNames, result);
+  }
+}
+
 // TODO Replace enum with types to allow extensibility of operations in plugins
-enum ColumnOperationType { toBinary, removeMissing, removeOutliers, calculateLength, shuffle, clamp }
+enum ColumnOperationType { toBinary, removeMissing, removeOutliers, calculateLength, shuffle, clamp } //, calculateSupriseFactor

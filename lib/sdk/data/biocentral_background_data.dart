@@ -1,34 +1,40 @@
 import 'dart:convert';
+import 'package:biocentral/plugins/proteins/model/sequence_column_wizard.dart';
+import 'package:biocentral/sdk/util/point.dart';
 import 'package:flutter/services.dart';
 
 class BiocentralBackgroundData {
-  static final String _backgroundPath = 'assets/background_dist/distribution_AA.json';
+  static final String _backgroundAAPath = 'assets/background_dist/distribution_AA.json';
 
-  static Future<Map<String, Map<String, double>>> getAALengthDistribution() async {
+  static Future<List<Point>> getAALengthDistribution() async {
+    final jsonData = await rootBundle.loadString(_backgroundAAPath);
+    final List<dynamic> data = (json.decode(jsonData) as Map<String, dynamic>)['lengthKde'];
 
-    final raw = await rootBundle.loadString(_backgroundPath);
-    final Map<String, dynamic> jsonData = json.decode(raw);
-    final Map<String, Map<String, double>> parsed = {};
+    final List<Point> points = [];
 
-    Map<String, dynamic> dist = jsonData['length_stats'];
-    parsed['length_stats'] = Map<String, double>.from(dist);
+    for (var pointData in data) {
+      points.add(Point((pointData[0] as num).toDouble(), (pointData[1] as num).toDouble()));
+    }
+    points.sort((a, b) => a.x.compareTo(b.x));
 
-    dist = jsonData['length_kde'];
-    parsed['length_kde'] = Map<String, double>.from(dist);
+    return points;
+  }
 
-    return parsed;
+  static Future<Map<String, double>> getAALengthStats() async {
+    final jsonData = await rootBundle.loadString(_backgroundAAPath);
+    final Map<String, dynamic> rawData = (json.decode(jsonData) as Map<String, dynamic>)['lengthStats'];
+    
+    return Map<String, double>.from(rawData);
   }
 
   static Future<Map<String, double>> getAASequenceDistribution() async {
-    final raw = await rootBundle.loadString(_backgroundPath);
-    final Map<String, dynamic> jsonData = json.decode(raw);
+    final jsonData = await rootBundle.loadString(_backgroundAAPath);
+    final Map<String, dynamic> data = (json.decode(jsonData) as Map<String, dynamic>)['distribution'];
 
+    final double total = data.values.fold(0.0, (a, b) => a + (b as num).toDouble());
     final Map<String, double> parsed = {};
-    final Map<String, dynamic> dist = jsonData['distribution'];
 
-    final double total = dist.values.fold(0.0, (a, b) => a + (b as num).toDouble());
-
-    dist.forEach((aa, count) {
+    data.forEach((aa, count) {
       parsed[aa] = ((count as num).toDouble() / total) * 100;
     });
 
@@ -36,28 +42,46 @@ class BiocentralBackgroundData {
   }
 
   static Future<Map<int, Map<String, double>>> getAAPositionalSequenceDistribution(Iterable<int> keys) async {
-  final raw = await rootBundle.loadString(_backgroundPath);
-  final Map<String, dynamic> jsonData = json.decode(raw);
+    final jsonData = await rootBundle.loadString(_backgroundAAPath);
+    final Map<String, dynamic> data = (json.decode(jsonData) as Map<String, dynamic>)['positionalDistribution'];
 
-  final Map<int, Map<String, double>> parsed = {};
-  final Map<String, dynamic> positional = jsonData['positional_distribution'];
+    final Map<int, Map<String, double>> parsed = {};
 
-  positional.forEach((posStr, aaCounts) {
-    final pos = int.parse(posStr);
-    if (keys.contains(pos)) {
-      final Map<String, num> counts = Map<String, num>.from(aaCounts);
+    data.forEach((posStr, aaCounts) {
+      final pos = int.parse(posStr);
+      if (keys.contains(pos)) {
+        final Map<String, num> counts = Map<String, num>.from(aaCounts);
+        final double totalAtPosition = counts.values.fold(0.0, (a, b) => a + b.toDouble());
+        final dist = counts.map(
+          (aa, c) => MapEntry(aa, (c.toDouble() / totalAtPosition) * 100),
+        );
+        parsed[pos] = dist;
+      }
+    });
 
-      final double totalAtPosition =
-          counts.values.fold(0.0, (a, b) => a + b.toDouble());
+    return parsed;
+  }
 
-      final dist = counts.map(
-        (aa, c) => MapEntry(aa, (c.toDouble() / totalAtPosition) * 100),
-      );
+  static Future<PointScaleStats> getScale(String feature) async {
+    final String scalePath = 'assets/background_dist/distribution_scales_$feature.json';
+    final jsonData = await rootBundle.loadString(scalePath);
+    final Map<String, dynamic> data = (json.decode(jsonData) as Map<String, dynamic>);
 
-      parsed[pos] = dist;
+    final Map<String, dynamic> dataValues = Map<String, dynamic>.from(data['values']);
+    final List<double> dist = [];
+
+    for (MapEntry<String, dynamic> entry in dataValues.entries) {
+      for (int i = 0; i < entry.value; i++) {
+        dist.add(double.parse(entry.key));
+      }
     }
-  });
 
-  return parsed;
+    final Map<String, dynamic> stats = Map<String, dynamic>.from(data['stats']);
+    final double mean = stats['mean'] as double;
+    final double min = stats['min'] as double;
+    final double max = stats['max'] as double;
+    final double stdDev = stats['std_dev'] as double;
+
+    return PointScaleStats(min, max, mean, stdDev, []); //TODO
   }
 }

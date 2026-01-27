@@ -5,6 +5,7 @@ import functionality
 _command_functions = {
     "setup": lambda _: "Success",
     "test_distributions": lambda data, types: functionality.test_distributions(data, types),
+    "get_scales": lambda data: functionality.get_scales(data),
     "read_h5": lambda data: functionality.read_h5(data),
     "write_h5": lambda data: functionality.write_h5(data)
 }

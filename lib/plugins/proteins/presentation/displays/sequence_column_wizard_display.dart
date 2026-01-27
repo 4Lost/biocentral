@@ -1,8 +1,10 @@
 import 'package:biocentral/plugins/proteins/model/sequence_column_wizard.dart';
 import 'package:biocentral/plugins/proteins/presentation/plots/biocentral_length_distribution_plot.dart';
+import 'package:biocentral/plugins/proteins/presentation/plots/biocentral_scale_plot.dart';
 import 'package:biocentral/plugins/proteins/presentation/plots/biocentral_sequence_distribution_plot.dart';
 import 'package:biocentral/plugins/proteins/presentation/plots/biocentral_positional_sequence_distribution_plot.dart';
 import 'package:biocentral/sdk/biocentral_sdk.dart';
+import 'package:biocentral/sdk/util/point.dart';
 import 'package:flutter/material.dart';
 
 class SequenceColumnWizardDisplay extends StatefulWidget {
@@ -15,7 +17,7 @@ class SequenceColumnWizardDisplay extends StatefulWidget {
 }
 
 class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDisplay> {
-  List<bool> compareValues = [false, false, false];
+  List<bool> compareValues = [false, false, false, false, false, false, false, false, false, false, false];
   List<String> compareColumns = ['', ''];
 
   @override
@@ -43,13 +45,23 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
             ),
             const Text('Length Distribution\n'),
             toggleCompareButton(1),
-            buildLengthCompositionPlot([snapshot.data!.lenDistribution]),
+            buildLengthCompositionPlot([snapshot.data!.lenKdePoints], [snapshot.data!.lenStats]),
             const Text('Protein Distribution\n'),
             toggleCompareButton(2),
             buildCompositionPlot([snapshot.data!.seqDistribution]),
             const Text('Positional Protein Distribution\n'),
             toggleCompareButton(3),
             buildPositionalCompositionPlot([snapshot.data!.posSeqDistribution]),
+            const Text('Hydrophobicity\n'),
+            toggleCompareButton(4),
+            buildScalePlot('hydrophobicity', [snapshot.data!.getScaleStats('hydrophobicity')], 4),
+            const Text('Free Energy\n'),
+            const Text('Stability\n'),
+            const Text('Volume\n'),
+            const Text('Alpha Helix\n'),
+            const Text('Beta Sheet\n'),
+            const Text('Coil\n'),
+            const Text('Mutability\n'),
           ],
         );
       }
@@ -64,7 +76,7 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
         if (compareColumns[0] == '' || compareColumns[1] == '') return compareSelection((widget.columnWizard as SequenceCompareColumnWizard).getKeys());
         if (!snapshot.hasData) return const CircularProgressIndicator();
         compareValues = [true, true, true];
-        final bool notEnoughData = snapshot.data![0].lenDistribution['length_kde']!.length > 1;
+        final bool notEnoughData = snapshot.data![0].lenKdePoints.length > 1;
 
         return Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -75,11 +87,20 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
               width: SizeConfig.safeBlockHorizontal(context) * 5,
             ),
             if (notEnoughData) const Text('Length Distribution\n'),
-            if (notEnoughData) buildLengthCompositionPlot([snapshot.data![0].lenDistribution, snapshot.data![1].lenDistribution]),
+            if (notEnoughData) buildLengthCompositionPlot([snapshot.data![0].lenKdePoints, snapshot.data![1].lenKdePoints], [snapshot.data![0].lenStats, snapshot.data![1].lenStats]),
             const Text('Protein Distribution\n'),
             buildCompositionPlot([snapshot.data![0].seqDistribution, snapshot.data![1].seqDistribution]),
             const Text('Positional Protein Distribution\n'),
             buildPositionalCompositionPlot([snapshot.data![0].posSeqDistribution, snapshot.data![1].posSeqDistribution]),
+            const Text('Hydrophobicity\n'),
+            //buildScalePlot('hydrophobicity', [snapshot.data![0].getScaleStats('hydrophobicity'), snapshot.data![1].getScaleStats('hydrophobicity')]),
+            const Text('Free Energy\n'),
+            const Text('Stability\n'),
+            const Text('Volume\n'),
+            const Text('Alpha Helix\n'),
+            const Text('Beta Sheet\n'),
+            const Text('Coil\n'),
+            const Text('Mutability\n'),
           ],
         );
       }
@@ -311,12 +332,12 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
     );
   }
 
-  Widget buildLengthCompositionPlot(List<Map<String, Map<String, double>>> data) {
+  Widget buildLengthCompositionPlot(List<List<Point>> lenDist, List<Map<String, double>> lenStats) {
     return SizedBox(
       key: Key('1-${compareColumns[0]}-${compareColumns[1]}'),
       width: 2000,
       height: 500,
-      child: BiocentralLengthDistributionPlot(distributions: data, showSecond: compareValues[0],),
+      child: BiocentralLengthDistributionPlot(distributions: lenDist, stats: lenStats, showSecond: compareValues[0],),
     );
   }
 
@@ -335,6 +356,15 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
       width: 2000,
       height: 500,
       child: BiocentralPositionalSequenceDistributionPlot(distributions: data, showSecond: compareValues[2],),
+    );
+  }
+
+  Widget buildScalePlot(String feature, List<PointScaleStats> data, int compareIndex) {
+    return SizedBox(
+      key: Key('4-$feature-${compareColumns[0]}-${compareColumns[1]}'),
+      width: 2000,
+      height: 500,
+      child: BiocentralScalePlot(scaleStats: data, showSecond: compareValues[compareIndex - 1], feature: feature,),
     );
   }
 }

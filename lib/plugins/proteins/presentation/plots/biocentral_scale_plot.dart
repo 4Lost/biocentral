@@ -1,45 +1,42 @@
 import 'dart:math' as math;
+import 'package:biocentral/plugins/proteins/model/sequence_column_wizard.dart';
 import 'package:biocentral/sdk/data/biocentral_background_data.dart';
 import 'package:biocentral/sdk/util/point.dart';
 import 'package:flutter/material.dart';
 
-class BiocentralLengthDistributionPlot extends StatefulWidget {
-  final List<List<Point>> distributions;
-  final List<Map<String, double>> stats;
+class BiocentralScalePlot extends StatefulWidget {
+  final List<PointScaleStats> scaleStats;
+  final String feature;
   final double bandwidth;
   final bool showSecond;
 
-  const BiocentralLengthDistributionPlot({
-    required this.distributions,
-    required this.stats,
+  const BiocentralScalePlot({
+    required this.scaleStats,
+    required this.feature,
     super.key,
     this.bandwidth = 20,
     this.showSecond = true,
   });
 
   @override
-  State<StatefulWidget> createState() => _BiocentralLengthDistributionPlotState();
+  State<StatefulWidget> createState() => _BiocentralScalePlotState();
 }
 
-class _BiocentralLengthDistributionPlotState extends State<BiocentralLengthDistributionPlot> {
-  late List<List<Point>> _distributions;
-  late List<Map<String, double>> _stats;
+class _BiocentralScalePlotState extends State<BiocentralScalePlot> {
+  late List<PointScaleStats> _scaleStats;
 
   @override
   void initState() {
-    _distributions = List.from(widget.distributions);
-    _stats = List.from(widget.stats);
-    if (_distributions.length < 2) _loadData();
+    _scaleStats = List.from(widget.scaleStats);
+    if (_scaleStats.length < 2) _loadData();
     super.initState();
   }
 
   Future<void> _loadData() async {
-    final dist = await BiocentralBackgroundData.getAALengthDistribution();
-    final stats = await BiocentralBackgroundData.getAALengthStats();
-    setState(() {
-      _distributions.add(dist);
-      _stats.add(stats);
-    });
+    //final data = await BiocentralBackgroundData.getScale(widget.feature);
+    //setState(() {
+    //  _scaleStats.add(data);
+    //});
   }
 
   @override
@@ -48,9 +45,8 @@ class _BiocentralLengthDistributionPlotState extends State<BiocentralLengthDistr
       builder: (context, constraints) {
         return CustomPaint(
           size: Size(constraints.maxWidth, constraints.maxHeight),
-          painter: _LengthDistributionPainter(
-            _distributions,
-            _stats,
+          painter: _ScalePainter(
+            _scaleStats,
             widget.bandwidth,
             widget.showSecond,
           ),
@@ -60,14 +56,13 @@ class _BiocentralLengthDistributionPlotState extends State<BiocentralLengthDistr
   }
 }
 
-class _LengthDistributionPainter extends CustomPainter {
-  final List<List<Point>> distributions;
-  final List<Map<String, double>> stats;
+class _ScalePainter extends CustomPainter {
+  final List<PointScaleStats> scaleStats;
   final double bandwidth;
   final bool showSecond;
   final TextStyle plotTextStyle = const TextStyle(color: Colors.black, fontSize: 12);
 
-  _LengthDistributionPainter(this.distributions, this.stats, this.bandwidth, this.showSecond);
+  _ScalePainter(this.scaleStats, this.bandwidth, this.showSecond);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -82,25 +77,25 @@ class _LengthDistributionPainter extends CustomPainter {
       size.height - topPadding - bottomPadding,
     );
 
-    Offset range = Offset(distributions[0][0].x, distributions[0][distributions[0].length - 1].x);
-    if (showSecond && distributions.length == 2) {
+    Offset range = Offset(scaleStats[0].values[0].x, scaleStats[0].values[scaleStats[0].values.length - 1].x);
+    if (showSecond && scaleStats.length == 2) {
       range = Offset(
-        math.min(range.dx, distributions[1][0].x),
-        math.max(range.dy, distributions[1][distributions[1].length - 1].x),
+        math.min(range.dx, scaleStats[1].values[0].x),
+        math.max(range.dy, scaleStats[1].values[scaleStats[0].values.length - 1].x),
       );
     }
     // Find global max density across all datasets
     double maxDensity = 0.0;
-    maxDensity = math.max(maxDensity, distributions[0].map((p) => p.y).reduce(math.max));
-    if (showSecond && distributions.length == 2) {
-      maxDensity = math.max(maxDensity, distributions[1].map((p) => p.y).reduce(math.max));
+    maxDensity = math.max(maxDensity, scaleStats[0].values.map((p) => p.y).reduce(math.max));
+    if (showSecond && scaleStats.length == 2) {
+      maxDensity = math.max(maxDensity, scaleStats[1].values.map((p) => p.y).reduce(math.max));
     }
 
-    drawKdePlot(canvas, distributions[0], range, plotSize, plotOffset, maxDensity, false);
-    highlightMeanAndStdDev(canvas, plotSize, plotOffset, range.dx, range.dy, stats[0]['mean']!, stats[0]['std_dev']!, false);
-    if (showSecond && distributions.length == 2) {
-      drawKdePlot(canvas, distributions[1], range, plotSize, plotOffset, maxDensity, true);
-      highlightMeanAndStdDev(canvas, plotSize, plotOffset, range.dx, range.dy, stats[1]['mean']!, stats[1]['std_dev']!, true);
+    drawKdePlot(canvas, scaleStats[0].values, range, plotSize, plotOffset, maxDensity, false);
+    highlightMeanAndStdDev(canvas, plotSize, plotOffset, range.dx, range.dy, scaleStats[0].mean, scaleStats[0].stdDev, false);
+    if (showSecond && scaleStats.length == 2) {
+      drawKdePlot(canvas, scaleStats[1].values, range, plotSize, plotOffset, maxDensity, true);
+      highlightMeanAndStdDev(canvas, plotSize, plotOffset, range.dx, range.dy, scaleStats[1].mean, scaleStats[1].stdDev, true);
     }
 
     // Draw axes
@@ -128,7 +123,7 @@ class _LengthDistributionPainter extends CustomPainter {
           Offset(x, plotSize.height + plotOffset.dy + 5), axesPaint);
 
       final textPainter = TextPainter(
-        text: TextSpan(text: value.toStringAsFixed(1), style: plotTextStyle),
+        text: TextSpan(text: value.toStringAsFixed(2), style: plotTextStyle),
         textDirection: TextDirection.ltr,
       );
       textPainter.layout();
@@ -250,10 +245,10 @@ class _LengthDistributionPainter extends CustomPainter {
     const double spacing = 6;
 
     final entries = [
-      {'label': 'Distribution', 'color': Colors.blue}, // %TODO : better names
-      {'label': 'Distribution Stats', 'color': Colors.green}, // %TODO : better names
-      if (showSecond && distributions.length == 2) {'label': 'Compare Data', 'color': Colors.pink},
-      if (showSecond && distributions.length == 2) {'label': 'Compare Data Stats', 'color': Colors.purple},
+      {'label': 'Scale Values', 'color': Colors.blue}, // %TODO : better names
+      {'label': 'Scale Stats', 'color': Colors.green}, // %TODO : better names
+      if (showSecond && scaleStats.length == 2) {'label': 'Compare Scale', 'color': Colors.pink},
+      if (showSecond && scaleStats.length == 2) {'label': 'Compare Scale Stats', 'color': Colors.purple},
     ];
 
     for (final entry in entries) {
