@@ -97,10 +97,10 @@ class _LengthDistributionPainter extends CustomPainter {
     }
 
     drawKdePlot(canvas, distributions[0], range, plotSize, plotOffset, maxDensity, false);
-    highlightMeanAndStdDev(canvas, plotSize, plotOffset, range.dx, range.dy, stats[0]['mean']!, stats[0]['std_dev']!, false);
+    highlightMeanAndStdDev(canvas, plotSize, plotOffset, range.dx, range.dy, stats[0]['mean']!, stats[0]['stdDev']!, false);
     if (showSecond && distributions.length == 2) {
       drawKdePlot(canvas, distributions[1], range, plotSize, plotOffset, maxDensity, true);
-      highlightMeanAndStdDev(canvas, plotSize, plotOffset, range.dx, range.dy, stats[1]['mean']!, stats[1]['std_dev']!, true);
+      highlightMeanAndStdDev(canvas, plotSize, plotOffset, range.dx, range.dy, stats[1]['mean']!, stats[1]['stdDev']!, true);
     }
 
     // Draw axes

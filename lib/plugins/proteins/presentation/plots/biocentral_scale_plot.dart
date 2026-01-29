@@ -33,10 +33,10 @@ class _BiocentralScalePlotState extends State<BiocentralScalePlot> {
   }
 
   Future<void> _loadData() async {
-    //final data = await BiocentralBackgroundData.getScale(widget.feature);
-    //setState(() {
-    //  _scaleStats.add(data);
-    //});
+    final data = await BiocentralBackgroundData.getScale(widget.feature);
+    setState(() {
+      _scaleStats.add(data);
+    });
   }
 
   @override

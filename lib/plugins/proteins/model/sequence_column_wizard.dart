@@ -33,32 +33,15 @@ class SequenceNormalColumnWizard extends SequenceColumnWizard with CounterStats 
 
   SequenceNormalColumnWizard(super.columnNames, this.valueMap, super.companion);
 
-  Map<String, double>? _composition;
-
-  Future<Map<String, double>> composition() async {
-    if(_composition != null) {
-      return _composition!;
-    }
-
-    final Map<String, int> counts = {};
-    int totalCount = 0;
-
-    for (Sequence sequence in valueMap.values) {
-      for (String token in sequence.toString().split('')) {
-        counts[token] = (counts[token] ?? 0) + 1;
-        totalCount++;
-      }
-    }
-
-    final Map<String, double> compositionResult = counts.map((k, v) => MapEntry(k, v / totalCount));
-    _composition = compositionResult;
-
-    return _composition!;
+  @override
+  Set<ColumnOperationType> getAvailableOperations() {
+    final Set<ColumnOperationType> operations = super.getAvailableOperations();
+    operations.add(ColumnOperationType.calculateSupriseFactor);
+    return operations;
   }
 
   DistributionStats? _distribution;
-  Map<String, ScaleStats> _scaleStats = {};
-  List<double>? _lenDistribution;
+  final Map<String, ScaleStats> _scaleStats = {};
 
   Future<DistributionStats> distribution() async {
     if(_distribution != null) {
@@ -66,7 +49,7 @@ class SequenceNormalColumnWizard extends SequenceColumnWizard with CounterStats 
     }
 
     final Future<({
-      List<double> lenDistribution,
+      List<Point> lenKdePoints,
       Map<String, double> lenStats,
       Map<String, double> seqDistribution,
       Map<int, Map<String, double>> posSeqDistribution})> futureDistStats = compute(DistributionStats.calculateAADistribution, valueMap.values.map((sequence) => sequence.toString()).toList());
@@ -74,7 +57,7 @@ class SequenceNormalColumnWizard extends SequenceColumnWizard with CounterStats 
     final Future<Either<BiocentralException, Map<String, dynamic>>> futureScaleStats = companion.getScales(valueMap.values.map((sequence) => sequence.toString()).toList());
 
     final ({
-      List<double> lenDistribution,
+      List<Point> lenKdePoints,
       Map<String, double> lenStats,
       Map<String, double> seqDistribution,
       Map<int, Map<String, double>> posSeqDistribution}) distStats = await futureDistStats;
@@ -91,10 +74,54 @@ class SequenceNormalColumnWizard extends SequenceColumnWizard with CounterStats 
       },
     );
 
-    _lenDistribution = distStats.lenDistribution;
-    _distribution = DistributionStats(DistributionStats.generateKdePoints(distStats.lenDistribution, distStats.lenStats), distStats.lenStats, distStats.seqDistribution, distStats.posSeqDistribution, pointScaleStats);
+    _distribution = DistributionStats(distStats.lenKdePoints, distStats.lenStats, distStats.seqDistribution, distStats.posSeqDistribution, pointScaleStats);
 
     return _distribution!;
+  }
+
+  SequenceStats getSequenceStats() {
+    if (_scaleStats == {} || _distribution == null) {
+      distribution();
+    }
+    
+    final List<SequenceValues> sequenceValues = [];
+    final Map<String, double> means = {};
+    final Map<String, double> stdDevs = {};
+
+    for (MapEntry<String, Sequence> entry in valueMap.entries) {
+      final String sequence = entry.value.toString();
+      final double hydVal = _scaleStats['hydrophobicity']!.valuesPerSequence[sequence]!;
+      final double stabVal = _scaleStats['stability']!.valuesPerSequence[sequence]!;
+      final double freVal = _scaleStats['freeEnergie']!.valuesPerSequence[sequence]!;
+      final double volVal = _scaleStats['volume']!.valuesPerSequence[sequence]!;
+      final double alpVal = _scaleStats['alphaHelix']!.valuesPerSequence[sequence]!;
+      final double betVal = _scaleStats['betaSheet']!.valuesPerSequence[sequence]!;
+      final double coiVal = _scaleStats['coil']!.valuesPerSequence[sequence]!;
+      final double mutVal = _scaleStats['mutability']!.valuesPerSequence[sequence]!;
+
+      sequenceValues.add(SequenceValues(
+        entry.key,
+        entry.value.toString().length,
+        hydVal,
+        stabVal,
+        freVal,
+        volVal,
+        alpVal,
+        betVal,
+        coiVal,
+        mutVal,
+        ),);
+    }
+
+    means['length'] = _distribution!.lenStats['mean']!;
+    stdDevs['length'] = _distribution!.lenStats['stdDev']!;
+
+    for (MapEntry<String, ScaleStats> entry in _scaleStats.entries) {
+      means[entry.key] = entry.value.mean;
+      stdDevs[entry.key] = entry.value.stdDev;
+    }
+
+    return SequenceStats(sequenceValues, means, stdDevs);
   }
 }
 
@@ -112,32 +139,6 @@ class SequenceCompareColumnWizard extends SequenceColumnWizard with CounterCompa
     return valueMap.keys;
   }
 
-  Map<String, Map<String, double>>? _composition;
-
-  Future<Map<String, Map<String, double>>> composition() async {
-    if(_composition != null) {
-      return _composition!;
-    }
-    _composition = {};
-
-    for (MapEntry<String, Map<String, Sequence>> entry in valueMap.entries) {
-      final Map<String, int> counts = {};
-      int totalCount = 0;
-
-      for (Sequence sequence in entry.value.values) {
-        for (String token in sequence.toString().split('')) {
-          counts[token] = (counts[token] ?? 0) + 1;
-          totalCount++;
-        }
-      }
-
-      final Map<String, double> compositionResult = counts.map((k, v) => MapEntry(k, v / totalCount));
-      _composition![entry.key] = compositionResult;
-    }
-
-    return _composition!;
-  }
-
   Map<String, DistributionStats>? _distribution;
   Map<String, Map<String, ScaleStats>> scaleStats = {};
 
@@ -148,7 +149,7 @@ class SequenceCompareColumnWizard extends SequenceColumnWizard with CounterCompa
     _distribution ??= {};
 
     if (_distribution![firstColumn] == null) {
-      final Future<({List<double> lenDistribution,
+      final Future<({List<Point> lenKdePoints,
         Map<String, double> lenStats,
         Map<String, double> seqDistribution,
         Map<int, Map<String, double>> posSeqDistribution})> futureDistStats = compute(DistributionStats.calculateAADistribution, valueMap[firstColumn]!.values.map((sequence) => sequence.toString()).toList());
@@ -156,7 +157,7 @@ class SequenceCompareColumnWizard extends SequenceColumnWizard with CounterCompa
       final Future<Either<BiocentralException, Map<String, dynamic>>> futureScaleStats = companion.getScales(valueMap[firstColumn]!.values.map((sequence) => sequence.toString()).toList());
 
       final ({
-        List<double> lenDistribution,
+        List<Point> lenKdePoints,
         Map<String, double> lenStats,
         Map<String, double> seqDistribution,
         Map<int, Map<String, double>> posSeqDistribution}) distStats = await futureDistStats;
@@ -174,11 +175,11 @@ class SequenceCompareColumnWizard extends SequenceColumnWizard with CounterCompa
         },
       );
 
-      _distribution![firstColumn] = DistributionStats(DistributionStats.generateKdePoints(distStats.lenDistribution, distStats.lenStats), distStats.lenStats, distStats.seqDistribution, distStats.posSeqDistribution, listScaleStats);
+      _distribution![firstColumn] = DistributionStats(distStats.lenKdePoints, distStats.lenStats, distStats.seqDistribution, distStats.posSeqDistribution, listScaleStats);
     }
 
     if (_distribution![secondColumn] == null) {
-      final Future<({List<double> lenDistribution,
+      final Future<({List<Point> lenKdePoints,
         Map<String, double> lenStats,
         Map<String, double> seqDistribution,
         Map<int, Map<String, double>> posSeqDistribution})> futureDistStats = compute(DistributionStats.calculateAADistribution, valueMap[secondColumn]!.values.map((sequence) => sequence.toString()).toList());
@@ -186,7 +187,7 @@ class SequenceCompareColumnWizard extends SequenceColumnWizard with CounterCompa
       final Future<Either<BiocentralException, Map<String, dynamic>>> futureScaleStats = companion.getScales(valueMap[secondColumn]!.values.map((sequence) => sequence.toString()).toList());
 
       final ({
-        List<double> lenDistribution,
+        List<Point> lenKdePoints,
         Map<String, double> lenStats,
         Map<String, double> seqDistribution,
         Map<int, Map<String, double>> posSeqDistribution}) distStats = await futureDistStats;
@@ -203,7 +204,7 @@ class SequenceCompareColumnWizard extends SequenceColumnWizard with CounterCompa
         },
       );
 
-      _distribution![firstColumn] = DistributionStats(DistributionStats.generateKdePoints(distStats.lenDistribution, distStats.lenStats), distStats.lenStats, distStats.seqDistribution, distStats.posSeqDistribution, listScaleStats);
+      _distribution![firstColumn] = DistributionStats(distStats.lenKdePoints, distStats.lenStats, distStats.seqDistribution, distStats.posSeqDistribution, listScaleStats);
     }
 
     return [_distribution![firstColumn]!, _distribution![secondColumn]!];
@@ -244,7 +245,7 @@ class DistributionStats {
   }
 
   static Future<({
-    List<double> lenDistribution,
+    List<Point> lenKdePoints,
     Map<String, double> lenStats,
     Map<String, double> seqDistribution,
     Map<int, Map<String, double>> posSeqDistribution})> calculateAADistribution(List<String> sequences) async {
@@ -309,13 +310,13 @@ class DistributionStats {
         'max': lenDistribution.last.toDouble(),
         'mean': mean,
         'variance': variance,
-        'std_dev': stdDev,
+        'stdDev': stdDev,
         'p01': percentile(lenDistribution, 0.01),
         'p99': percentile(lenDistribution, 0.99),
       };
     }
 
-    return (lenDistribution: lenDistribution, lenStats: lenStats, seqDistribution: seqDistribution, posSeqDistribution: posSeqDistribution);
+    return (lenKdePoints: generateKdePoints(lenDistribution, lenStats), lenStats: lenStats, seqDistribution: seqDistribution, posSeqDistribution: posSeqDistribution);
    }
 }
 
@@ -327,18 +328,6 @@ class ScaleStats {
   final Map<String, double> valuesPerSequence;
 
   ScaleStats(this.min, this.max, this.mean, this.stdDev, this.valuesPerSequence);
-/*
-  static List<String> get availableScales => [
-    'hydrophobicity',
-    'stability',
-    'freeEnergy',
-    'volume',
-    'alpha-helix',
-    'beta-sheet',
-    'coil',
-    'mutability',
-  ];
-  */
   PointScaleStats toPointScaleStats() {
     List<Point> kdePoints = [];
     final double range = max - min;
@@ -370,24 +359,27 @@ class PointScaleStats {
   final List<Point> values;
 
   PointScaleStats(this.min, this.max, this.mean, this.stdDev, this.values);
-/*
-  static List<String> get availableScales => [
-    'hydrophobicity',
-    'stability',
-    'freeEnergy',
-    'volume',
-    'alpha-helix',
-    'beta-sheet',
-    'coil',
-    'mutability',
-  ];
-  */
+}
+
+class SequenceValues {
+  final String sequence;
+  final int length;
+  final double hydrophobicity;
+  final double stability;
+  final double freeEnergy;
+  final double volume;
+  final double alphaHelix;
+  final double betaSheet;
+  final double coil;
+  final double mutability;
+
+  SequenceValues(this.sequence, this.length, this.hydrophobicity, this.stability, this.freeEnergy, this.volume, this.alphaHelix, this.betaSheet, this.coil, this.mutability);
 }
 
 class SequenceStats {
-  final Sequence sequence;
-  final int length;
-  final double hydrophobicity;
+  final List<SequenceValues> values;
+  final Map<String, double> means;
+  final Map<String, double> stdDevs;
 
-  SequenceStats(this.sequence, this.length, this.hydrophobicity);
+  SequenceStats(this.values, this.means, this.stdDevs);
 }

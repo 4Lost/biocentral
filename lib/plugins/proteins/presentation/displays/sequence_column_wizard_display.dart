@@ -17,7 +17,7 @@ class SequenceColumnWizardDisplay extends StatefulWidget {
 }
 
 class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDisplay> {
-  List<bool> compareValues = [false, false, false, false, false, false, false, false, false, false, false];
+  List<bool> compareValues = [false, false, false, false, false, false, false, false, false, false, false, true];
   List<String> compareColumns = ['', ''];
 
   @override
@@ -56,12 +56,26 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
             toggleCompareButton(4),
             buildScalePlot('hydrophobicity', [snapshot.data!.getScaleStats('hydrophobicity')], 4),
             const Text('Free Energy\n'),
+            toggleCompareButton(5),
+            buildScalePlot('freeEnergie', [snapshot.data!.getScaleStats('freeEnergie')], 5),
             const Text('Stability\n'),
+            toggleCompareButton(6),
+            buildScalePlot('stability', [snapshot.data!.getScaleStats('stability')], 6),
             const Text('Volume\n'),
+            toggleCompareButton(7),
+            buildScalePlot('volume', [snapshot.data!.getScaleStats('volume')], 7),
             const Text('Alpha Helix\n'),
+            toggleCompareButton(8),
+            buildScalePlot('alphaHelix', [snapshot.data!.getScaleStats('alphaHelix')], 8),
             const Text('Beta Sheet\n'),
+            toggleCompareButton(9),
+            buildScalePlot('betaSheet', [snapshot.data!.getScaleStats('betaSheet')], 9),
             const Text('Coil\n'),
+            toggleCompareButton(10),
+            buildScalePlot('coil', [snapshot.data!.getScaleStats('coil')], 10),
             const Text('Mutability\n'),
+            toggleCompareButton(11),
+            buildScalePlot('mutability', [snapshot.data!.getScaleStats('mutability')], 11),
           ],
         );
       }
@@ -93,14 +107,21 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
             const Text('Positional Protein Distribution\n'),
             buildPositionalCompositionPlot([snapshot.data![0].posSeqDistribution, snapshot.data![1].posSeqDistribution]),
             const Text('Hydrophobicity\n'),
-            //buildScalePlot('hydrophobicity', [snapshot.data![0].getScaleStats('hydrophobicity'), snapshot.data![1].getScaleStats('hydrophobicity')]),
+            buildScalePlot('hydrophobicity', [snapshot.data![0].getScaleStats('hydrophobicity'), snapshot.data![1].getScaleStats('hydrophobicity')], 12),
             const Text('Free Energy\n'),
+            buildScalePlot('freeEnergie', [snapshot.data![0].getScaleStats('freeEnergie'), snapshot.data![1].getScaleStats('freeEnergie')], 12),
             const Text('Stability\n'),
+            buildScalePlot('stability', [snapshot.data![0].getScaleStats('stability'), snapshot.data![1].getScaleStats('stability')], 12),
             const Text('Volume\n'),
+            buildScalePlot('volume', [snapshot.data![0].getScaleStats('volume'), snapshot.data![1].getScaleStats('volume')], 12),
             const Text('Alpha Helix\n'),
+            buildScalePlot('alphaHelix', [snapshot.data![0].getScaleStats('alphaHelix'), snapshot.data![1].getScaleStats('alphaHelix')], 12),
             const Text('Beta Sheet\n'),
+            buildScalePlot('betaSheet', [snapshot.data![0].getScaleStats('betaSheet'), snapshot.data![1].getScaleStats('betaSheet')], 12),
             const Text('Coil\n'),
+            buildScalePlot('coil', [snapshot.data![0].getScaleStats('coil'), snapshot.data![1].getScaleStats('coil')], 12),
             const Text('Mutability\n'),
+            buildScalePlot('mutability', [snapshot.data![0].getScaleStats('mutability'), snapshot.data![1].getScaleStats('mutability')], 12),
           ],
         );
       }

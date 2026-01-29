@@ -65,23 +65,22 @@ class BiocentralBackgroundData {
   static Future<PointScaleStats> getScale(String feature) async {
     final String scalePath = 'assets/background_dist/distribution_scales_$feature.json';
     final jsonData = await rootBundle.loadString(scalePath);
-    final Map<String, dynamic> data = (json.decode(jsonData) as Map<String, dynamic>);
+    final Map<String, dynamic> data = json.decode(jsonData) as Map<String, dynamic>;
 
-    final Map<String, dynamic> dataValues = Map<String, dynamic>.from(data['values']);
-    final List<double> dist = [];
+    final List<dynamic> dataValues = data['values'] as List<dynamic>;
+    final List<Point> points = [];
 
-    for (MapEntry<String, dynamic> entry in dataValues.entries) {
-      for (int i = 0; i < entry.value; i++) {
-        dist.add(double.parse(entry.key));
-      }
+    for (var pointData in dataValues) {
+      points.add(Point((pointData[0] as num).toDouble(), (pointData[1] as num).toDouble()));
     }
+    points.sort((a, b) => a.x.compareTo(b.x));
 
     final Map<String, dynamic> stats = Map<String, dynamic>.from(data['stats']);
     final double mean = stats['mean'] as double;
     final double min = stats['min'] as double;
     final double max = stats['max'] as double;
-    final double stdDev = stats['std_dev'] as double;
+    final double stdDev = stats['stdDev'] as double;
 
-    return PointScaleStats(min, max, mean, stdDev, []); //TODO
+    return PointScaleStats(min, max, mean, stdDev, points);
   }
 }

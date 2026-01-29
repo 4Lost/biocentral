@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:biocentral/plugins/proteins/model/sequence_column_wizard.dart';
 import 'package:biocentral/sdk/model/column_wizard_abstract.dart';
 import 'package:flutter/material.dart';
 
@@ -154,15 +155,33 @@ class ColumnWizardcalculateSupriseFactorOperation extends ColumnWizardOperation<
 
   @override
   Future<ColumnWizardAddOperationResult> operate(ColumnWizard columnWizard) async {
-    // Map<String, Map<String, double>> scalevalues
-    //Map<String, ScaleStats> scaleStats
-    //Map<String, double> lenStats;
-    final Map<String, int> result = Map.fromEntries(
-        columnWizard.valueMap.entries.map((entry) => MapEntry(entry.key, entry.value.toString().length)));
+    if (columnWizard is! SequenceNormalColumnWizard) return ColumnWizardAddOperationResult(newColumnNames, columnWizard.valueMap);
 
-    return ColumnWizardAddOperationResult(newColumnNames, result);
+    final SequenceStats data = (columnWizard).getSequenceStats();
+    final Map<String, double> means = data.means;
+    final Map<String, double> stdDevs = data.stdDevs;
+    
+    final Map<String, String> surpriseFactor = {};
+    for (SequenceValues values in data.values) {
+      final double factor = ((means['length']! - values.length.toDouble()).abs() / stdDevs['length']!
+        + (means['hydrophobicity']! - values.hydrophobicity).abs() / stdDevs['hydrophobicity']!
+        + (means['stability']! - values.stability).abs() / stdDevs['stability']!
+        + (means['freeEnergie']! - values.freeEnergy).abs() / stdDevs['freeEnergie']!
+        + (means['volume']! - values.volume).abs() / stdDevs['volume']!
+        + (means['alphaHelix']! - values.alphaHelix).abs() / stdDevs['alphaHelix']!
+        + (means['betaSheet']! - values.betaSheet).abs() / stdDevs['betaSheet']!
+        + (means['coil']! - values.coil).abs() / stdDevs['coil']!
+        + (means['mutability']! - values.mutability).abs() / stdDevs['mutability']!) / 9;
+
+        surpriseFactor[values.sequence] = factor >= 5.0 ? 'extremly surprising' :
+          factor >= 4 ? 'highly surprising' :
+          factor >= 3 ? 'surprising' :
+          factor >= 2.5 ? 'slightly surprising' : 'ordinary';
+    }
+
+    return ColumnWizardAddOperationResult(newColumnNames, surpriseFactor);
   }
 }
 
 // TODO Replace enum with types to allow extensibility of operations in plugins
-enum ColumnOperationType { toBinary, removeMissing, removeOutliers, calculateLength, shuffle, clamp } //, calculateSupriseFactor
+enum ColumnOperationType { toBinary, removeMissing, removeOutliers, calculateLength, calculateSupriseFactor, shuffle, clamp }

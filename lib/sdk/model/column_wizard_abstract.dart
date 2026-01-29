@@ -109,7 +109,7 @@ abstract class ColumnWizard {
   }
 
   Set<ColumnOperationType> getAvailableOperations() {
-    return {ColumnOperationType.toBinary, ColumnOperationType.removeMissing, ColumnOperationType.calculateLength};//, ColumnOperationType.calculateSupriseFactor
+    return {ColumnOperationType.toBinary, ColumnOperationType.removeMissing, ColumnOperationType.calculateLength};
   }
 
   Future<Map<String, int>> _getBarPlotDataPoints() async {
@@ -463,7 +463,6 @@ mixin CounterCompareStats on ColumnWizard {
   Future<Map<String, int>> getCountsOfKey(String columnName) async {
     if (_countsByColumn != null && _countsByColumn![columnName] != null) return _countsByColumn![columnName]!;
     _countsByColumn ??= await _getCounts();
-    print('test: ${_countsByColumn![columnName]!}');
 
     return _countsByColumn![columnName]!;
   }

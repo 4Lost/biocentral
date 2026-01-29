@@ -32,6 +32,11 @@ class ColumnWizardOperationDisplayFactory {
           selectedColumnNames: selectedColumnNames,
           onCalculateCallback: onCalculateCallback,
         );
+      case ColumnOperationType.calculateSupriseFactor:
+        return ColumnWizardcalculateSupriseFactorOperationDisplay(
+          selectedColumnNames: selectedColumnNames,
+          onCalculateCallback: onCalculateCallback,
+        );
     }
   }
 }
@@ -388,6 +393,39 @@ class _ColumnWizardCalculateLengthOperationDisplayState
   ColumnWizardOperation? collect() {
     if (newColumnNames.isNotEmpty) {
       return ColumnWizardCalculateLengthOperation(newColumnNames);
+    } else {
+      return null;
+    }
+  }
+
+  @override
+  List<Widget> buildParameterSelections() {
+    return [];
+  }
+}
+
+class ColumnWizardcalculateSupriseFactorOperationDisplay extends ColumnWizardOperationDisplay<ColumnWizardAddOperationResult> {
+  const ColumnWizardcalculateSupriseFactorOperationDisplay({
+    required super.selectedColumnNames,
+    required super.onCalculateCallback,
+    super.key,
+  });
+
+  @override
+  State<StatefulWidget> createState() => ColumnWizardcalculateSupriseFactorOperationDisplayState();
+}
+
+class ColumnWizardcalculateSupriseFactorOperationDisplayState
+    extends ColumnWizardOperationDisplayState<ColumnWizardAddOperationResult> {
+  @override
+  String defaultColumnName() {
+    return 'supriseFactor';
+  }
+
+  @override
+  ColumnWizardOperation? collect() {
+    if (newColumnNames.isNotEmpty) {
+      return ColumnWizardcalculateSupriseFactorOperation(newColumnNames);
     } else {
       return null;
     }
