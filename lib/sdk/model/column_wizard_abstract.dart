@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:biocentral/plugins/proteins/model/surprise_metric_column_wizard.dart';
 import 'package:biocentral/sdk/data/biocentral_python_companion.dart';
 import 'package:biocentral/sdk/model/column_wizard_operations.dart';
 import 'package:biocentral/sdk/presentation/plots/biocentral_bar_compare_plot.dart';
@@ -32,6 +33,7 @@ final class TypeDetector {
     if (type == int) return 0.9;
     if (type == double) return 0.8;
     if (type == num) return 0.7;
+    if (type == SurpriseMetric) return 0.3;
     if (type == String) return 0.1;
     return 1; // Priority for custom types should always be the highest
   }

@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:biocentral/sdk/data/biocentral_background_data.dart';
 import 'package:flutter/material.dart';
 
@@ -156,7 +158,7 @@ class _GeneralDistributionPainter extends CustomPainter {
               plotOffset.dy + plotSize.height + 5));
     }
 
-    drawLegend(canvas, size);
+    drawLegend(canvas, size, plotOffset);
   }
 
   void _drawBar(Canvas canvas, double barX, double yBottom, double barWidth,
@@ -167,7 +169,7 @@ class _GeneralDistributionPainter extends CustomPainter {
     canvas.drawRect(rect, paint);
   }
 
-  void drawLegend(Canvas canvas, Size size) {
+  void drawLegend(Canvas canvas, Size size, Offset plotOffset) {
     final double legendX = size.width - 130;
     double legendY = 50;
     const double boxSize = 12;
@@ -191,6 +193,22 @@ class _GeneralDistributionPainter extends CustomPainter {
 
       legendY += boxSize + spacing + 4;
     }
+
+    final xLabelPainter = TextPainter(
+      text: TextSpan(text: 'Amino Acid', style: plotTextStyle), // Position for Pos
+      textDirection: TextDirection.ltr,
+    );
+    xLabelPainter.layout();
+    xLabelPainter.paint(canvas, Offset(size.width / 2, size.height - xLabelPainter.height - 20));
+
+    final yLabelPainter = TextPainter(
+      text: TextSpan(text: 'Percentage', style: plotTextStyle),
+      textDirection: TextDirection.ltr,
+    );
+    yLabelPainter.layout();
+    canvas.translate(0, size.height / 2 + yLabelPainter.width / 2);
+    canvas.rotate(-math.pi / 2);
+    yLabelPainter.paint(canvas, Offset(0, plotOffset.dx / 4 - 10));
   }
 
   @override

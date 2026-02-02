@@ -261,11 +261,18 @@ class ProteinDatabaseViewState extends State<ProteinDatabaseView> with Automatic
           'taxonomyFamily': PlutoCell(value: protein.taxonomy.family ?? ''),
           'target': PlutoCell(value: protein.attributes['TARGET']),
         }..addAll(Map<String, PlutoCell>.fromEntries(state.additionalColumns
-                ?.map((columnName) => MapEntry(columnName, PlutoCell(value: protein.attributes[columnName] ?? ''))) ??
+                ?.map((columnName) => MapEntry(columnName, PlutoCell(value: formatText(protein.attributes[columnName] ?? '')))) ??
             {},),),
       );
       rows.add(row);
     }
     return rows;
+  }
+
+  String formatText(String text) {
+    final String prefix = 'SurpriseMetric(class:';
+    if (!text.startsWith(prefix)) return text;
+    
+    return text.substring(prefix.length).split(',').first;
   }
 }

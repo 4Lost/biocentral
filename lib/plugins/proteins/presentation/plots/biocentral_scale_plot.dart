@@ -214,8 +214,10 @@ class _ScalePainter extends CustomPainter {
     canvas.drawLine(Offset(meanX, plotOffset.dy), Offset(meanX, plotOffset.dy + plotSize.height), meanPaint);
 
     // Draw standard deviation range
-    final double leftStdDevX = plotOffset.dx + (mean - stdDev - minValue) / (maxValue - minValue) * plotSize.width;
-    final double rightStdDevX = plotOffset.dx + (mean + stdDev - minValue) / (maxValue - minValue) * plotSize.width;
+    final double clampedLeftValue = math.max(minValue, mean - stdDev);
+    final double clampedRightValue = math.min(maxValue, mean + stdDev);
+    final double leftStdDevX = plotOffset.dx + (clampedLeftValue - minValue) / (maxValue - minValue) * plotSize.width;
+    final double rightStdDevX = plotOffset.dx + (clampedRightValue - minValue) / (maxValue - minValue) * plotSize.width;
 
     canvas.drawLine(Offset(leftStdDevX, plotOffset.dy + plotSize.height),
         Offset(rightStdDevX, plotOffset.dy + plotSize.height), meanPaint,);

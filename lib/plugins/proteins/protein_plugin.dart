@@ -4,7 +4,9 @@ import 'package:biocentral/plugins/proteins/bloc/proteins_command_bloc.dart';
 import 'package:biocentral/plugins/proteins/data/protein_client.dart';
 import 'package:biocentral/plugins/proteins/domain/protein_repository.dart';
 import 'package:biocentral/plugins/proteins/model/sequence_column_wizard.dart';
+import 'package:biocentral/plugins/proteins/model/surprise_metric_column_wizard.dart';
 import 'package:biocentral/plugins/proteins/presentation/displays/sequence_column_wizard_display.dart';
+import 'package:biocentral/plugins/proteins/presentation/displays/surprise_metric_column_wizard_display.dart';
 import 'package:biocentral/plugins/proteins/presentation/views/protein_hub_view.dart';
 import 'package:biocentral/plugins/proteins/presentation/views/proteins_command_view.dart';
 import 'package:biocentral/sdk/biocentral_sdk.dart';
@@ -99,6 +101,8 @@ class ProteinPlugin extends BiocentralPlugin
     return {
       SequenceColumnWizardFactory(): (seqColumnWizard) =>
           SequenceColumnWizardDisplay(columnWizard: seqColumnWizard as SequenceColumnWizard),
+      SurpriseMetricColumnWizardFactory(): (seqColumnWizard) =>
+          SurpriseMetricColumnWizardDisplay(columnWizard: seqColumnWizard as SurpriseMetricColumnWizard),
     };
   }
 

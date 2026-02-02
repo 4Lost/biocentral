@@ -153,7 +153,7 @@ class _LengthDistributionPainter extends CustomPainter {
 
     // Labels
     final xLabelPainter = TextPainter(
-      text: TextSpan(text: 'Value', style: plotTextStyle),
+      text: TextSpan(text: 'Length', style: plotTextStyle),
       textDirection: TextDirection.ltr,
     );
     xLabelPainter.layout();
@@ -219,8 +219,10 @@ class _LengthDistributionPainter extends CustomPainter {
     canvas.drawLine(Offset(meanX, plotOffset.dy), Offset(meanX, plotOffset.dy + plotSize.height), meanPaint);
 
     // Draw standard deviation range
-    final double leftStdDevX = plotOffset.dx + (mean - stdDev - minValue) / (maxValue - minValue) * plotSize.width;
-    final double rightStdDevX = plotOffset.dx + (mean + stdDev - minValue) / (maxValue - minValue) * plotSize.width;
+    final double clampedLeftValue = math.max(minValue, mean - stdDev);
+    final double clampedRightValue = math.min(maxValue, mean + stdDev);
+    final double leftStdDevX = plotOffset.dx + (clampedLeftValue - minValue) / (maxValue - minValue) * plotSize.width;
+    final double rightStdDevX = plotOffset.dx + (clampedRightValue - minValue) / (maxValue - minValue) * plotSize.width;
 
     canvas.drawLine(Offset(leftStdDevX, plotOffset.dy + plotSize.height),
         Offset(rightStdDevX, plotOffset.dy + plotSize.height), meanPaint,);
@@ -241,7 +243,6 @@ class _LengthDistributionPainter extends CustomPainter {
     stdDevPainter.paint(canvas,
         Offset((leftStdDevX + rightStdDevX) / 2 - stdDevPainter.width / 2, plotOffset.dy + plotSize.height - 15),);
   }
-
 
   void drawLegend(Canvas canvas, Size size) {
     final double legendX = size.width - 130;

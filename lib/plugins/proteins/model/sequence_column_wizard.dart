@@ -92,7 +92,7 @@ class SequenceNormalColumnWizard extends SequenceColumnWizard with CounterStats 
       final String sequence = entry.value.toString();
       final double hydVal = _scaleStats['hydrophobicity']!.valuesPerSequence[sequence]!;
       final double stabVal = _scaleStats['stability']!.valuesPerSequence[sequence]!;
-      final double freVal = _scaleStats['freeEnergie']!.valuesPerSequence[sequence]!;
+      final double freVal = _scaleStats['freeEnergy']!.valuesPerSequence[sequence]!;
       final double volVal = _scaleStats['volume']!.valuesPerSequence[sequence]!;
       final double alpVal = _scaleStats['alphaHelix']!.valuesPerSequence[sequence]!;
       final double betVal = _scaleStats['betaSheet']!.valuesPerSequence[sequence]!;
@@ -148,13 +148,17 @@ class SequenceCompareColumnWizard extends SequenceColumnWizard with CounterCompa
     }
     _distribution ??= {};
 
-    if (_distribution![firstColumn] == null) {
+    for (String column in [firstColumn, secondColumn]) {
+      if (_distribution![column] != null) continue;
+
+      final List<String> values = valueMap[column]!.values.map((sequence) => sequence.toString()).toList();
+
       final Future<({List<Point> lenKdePoints,
         Map<String, double> lenStats,
         Map<String, double> seqDistribution,
-        Map<int, Map<String, double>> posSeqDistribution})> futureDistStats = compute(DistributionStats.calculateAADistribution, valueMap[firstColumn]!.values.map((sequence) => sequence.toString()).toList());
+        Map<int, Map<String, double>> posSeqDistribution})> futureDistStats = compute(DistributionStats.calculateAADistribution, values);
 
-      final Future<Either<BiocentralException, Map<String, dynamic>>> futureScaleStats = companion.getScales(valueMap[firstColumn]!.values.map((sequence) => sequence.toString()).toList());
+      final Future<Either<BiocentralException, Map<String, dynamic>>> futureScaleStats = companion.getScales(values);
 
       final ({
         List<Point> lenKdePoints,
@@ -175,36 +179,7 @@ class SequenceCompareColumnWizard extends SequenceColumnWizard with CounterCompa
         },
       );
 
-      _distribution![firstColumn] = DistributionStats(distStats.lenKdePoints, distStats.lenStats, distStats.seqDistribution, distStats.posSeqDistribution, listScaleStats);
-    }
-
-    if (_distribution![secondColumn] == null) {
-      final Future<({List<Point> lenKdePoints,
-        Map<String, double> lenStats,
-        Map<String, double> seqDistribution,
-        Map<int, Map<String, double>> posSeqDistribution})> futureDistStats = compute(DistributionStats.calculateAADistribution, valueMap[secondColumn]!.values.map((sequence) => sequence.toString()).toList());
-
-      final Future<Either<BiocentralException, Map<String, dynamic>>> futureScaleStats = companion.getScales(valueMap[secondColumn]!.values.map((sequence) => sequence.toString()).toList());
-
-      final ({
-        List<Point> lenKdePoints,
-        Map<String, double> lenStats,
-        Map<String, double> seqDistribution,
-        Map<int, Map<String, double>> posSeqDistribution}) distStats = await futureDistStats;
-
-      final Map<String, PointScaleStats> listScaleStats = {};
-
-      final Map<String, ScaleStats> scaleStats = {};
-      (await futureScaleStats).match(
-        (exception) => logger.e(exception),
-        (data) {
-          for (final entry in data.entries) {
-            listScaleStats[entry.key] = scaleStats[entry.key]!.toPointScaleStats();
-          }
-        },
-      );
-
-      _distribution![firstColumn] = DistributionStats(distStats.lenKdePoints, distStats.lenStats, distStats.seqDistribution, distStats.posSeqDistribution, listScaleStats);
+      _distribution![column] = DistributionStats(distStats.lenKdePoints, distStats.lenStats, distStats.seqDistribution, distStats.posSeqDistribution, listScaleStats);
     }
 
     return [_distribution![firstColumn]!, _distribution![secondColumn]!];
@@ -228,8 +203,8 @@ class DistributionStats {
     final double range = lenStats['max']! - lenStats['min']!;
     final double bandwidth = 20;
 
-    for (int i = 0; i < 100; i++) {
-      final double x = lenStats['min']! + (i / 100) * range;
+    for (int i = 0; i < 200; i++) {
+      final double x = lenStats['min']! + (i / 200) * range;
       double y = 0;
       for (double value in lenDistribution) {
           y += math.exp(-math.pow(x - value, 2) / (2 * bandwidth * bandwidth));
@@ -238,7 +213,7 @@ class DistributionStats {
       y /= lenDistribution.length * bandwidth * math.sqrt(2 * math.pi);
       lenKdePoints.add(Point(x, y));
     }
-    final double sumKDE = lenKdePoints.fold(0.0, (sum, point) => sum + point.y);
+    final double sumKDE = lenKdePoints.fold(0.0, (sum, point) => sum + point.y) * (range / 200);
     lenKdePoints = [for (Point point in lenKdePoints) Point(point.x, point.y / sumKDE)];
 
     return lenKdePoints;
@@ -331,10 +306,10 @@ class ScaleStats {
   PointScaleStats toPointScaleStats() {
     List<Point> kdePoints = [];
     final double range = max - min;
-    final double bandwidth = 0.75 * stdDev * math.pow(valuesPerSequence.length, -1.0/5);;
+    final double bandwidth = 0.75 * stdDev * math.pow(valuesPerSequence.length, -1.0/5);
 
-    for (int i = 0; i < 100; i++) {
-      final double x = min + (i / 100) * range;
+    for (int i = 0; i < 200; i++) {
+      final double x = min + (i / 200) * range;
       double y = 0;
       for (double value in valuesPerSequence.values) {
           y += math.exp(-math.pow(x - value, 2) / (2 * bandwidth * bandwidth));
@@ -343,7 +318,7 @@ class ScaleStats {
       y /= valuesPerSequence.length * bandwidth * math.sqrt(2 * math.pi);
       kdePoints.add(Point(x, y));
     }
-    final double sumKDE = kdePoints.fold(0.0, (sum, point) => sum + point.y);
+    final double sumKDE = kdePoints.fold(0.0, (sum, point) => sum + point.y) * (range / 200);
     kdePoints = [for (Point point in kdePoints) Point(point.x, point.y / sumKDE)];
 
     return PointScaleStats(min, max, mean, stdDev, kdePoints);

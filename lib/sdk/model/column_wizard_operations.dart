@@ -163,20 +163,32 @@ class ColumnWizardcalculateSupriseFactorOperation extends ColumnWizardOperation<
     
     final Map<String, String> surpriseFactor = {};
     for (SequenceValues values in data.values) {
-      final double factor = ((means['length']! - values.length.toDouble()).abs() / stdDevs['length']!
-        + (means['hydrophobicity']! - values.hydrophobicity).abs() / stdDevs['hydrophobicity']!
-        + (means['stability']! - values.stability).abs() / stdDevs['stability']!
-        + (means['freeEnergie']! - values.freeEnergy).abs() / stdDevs['freeEnergie']!
-        + (means['volume']! - values.volume).abs() / stdDevs['volume']!
-        + (means['alphaHelix']! - values.alphaHelix).abs() / stdDevs['alphaHelix']!
-        + (means['betaSheet']! - values.betaSheet).abs() / stdDevs['betaSheet']!
-        + (means['coil']! - values.coil).abs() / stdDevs['coil']!
-        + (means['mutability']! - values.mutability).abs() / stdDevs['mutability']!) / 9;
+      final double length = (means['length']! - values.length).abs() / stdDevs['length']!;
+      final double hydrophobicity = (means['hydrophobicity']! - values.hydrophobicity).abs() / stdDevs['hydrophobicity']!;
+      final double stability = (means['stability']! - values.stability).abs() / stdDevs['stability']!;
+      final double freeEnergy = (means['freeEnergy']! - values.freeEnergy).abs() / stdDevs['freeEnergy']!;
+      final double volume = (means['volume']! - values.volume).abs() / stdDevs['volume']!;
+      final double alphaHelix = (means['alphaHelix']! - values.alphaHelix).abs() / stdDevs['alphaHelix']!;
+      final double betaSheet = (means['betaSheet']! - values.betaSheet).abs() / stdDevs['betaSheet']!;
+      final double coil = (means['coil']! - values.coil).abs() / stdDevs['coil']!;
+      final double mutability = (means['mutability']! - values.mutability).abs() / stdDevs['mutability']!;
 
-        surpriseFactor[values.sequence] = factor >= 5.0 ? 'extremly surprising' :
+      final double factor = (length
+        + hydrophobicity
+        + stability
+        + freeEnergy
+        + volume
+        + alphaHelix
+        + betaSheet
+        + coil
+        + mutability) / 9;
+      
+      final String surpriseClass = factor >= 5.0 ? 'extremly surprising' :
           factor >= 4 ? 'highly surprising' :
           factor >= 3 ? 'surprising' :
           factor >= 2.5 ? 'slightly surprising' : 'ordinary';
+
+        surpriseFactor[values.sequence] = 'SurpriseMetric(class:${surpriseClass},factor:${factor},length:${length},hydrophobicity:${hydrophobicity},stability:${stability},freeEnergy:${freeEnergy},volume:${volume},alphaHelix:${alphaHelix},betaSheet:${betaSheet},coil:${coil},mutability:${mutability})';
     }
 
     return ColumnWizardAddOperationResult(newColumnNames, surpriseFactor);

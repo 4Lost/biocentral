@@ -1,4 +1,5 @@
 import 'package:bio_flutter/bio_flutter.dart';
+import 'package:biocentral/plugins/proteins/model/surprise_metric_column_wizard.dart';
 import 'package:biocentral/sdk/data/biocentral_python_companion.dart';
 import 'package:biocentral/sdk/model/column_wizard_abstract.dart';
 import 'package:biocentral/sdk/model/column_wizard_defaults.dart';
