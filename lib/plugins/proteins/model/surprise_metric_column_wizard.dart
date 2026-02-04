@@ -15,26 +15,44 @@ class SurpriseMetricColumnWizardFactory extends ColumnWizardFactory {
 
   SurpriseMetric toSurprisMetric(String obj, String sequenceId) {
     final content = obj.substring(15, obj.length - 1);
-    final params = content.split(',');
+    final entries = content.split(',');
   
+    final Map<String, double> factors = {};
     final Map<String, double> values = {};
     String surpriseClass = '';
+    double factor = 0;
   
-    for (final param in params) {
-      final parts = param.split(':');
+    for (final entry in entries) {
+      final parts = entry.split(':');
       if (parts.length < 2) continue;
       
       final key = parts[0];
-      final value = parts[1].replaceAll('{', '').replaceAll('}', '');
+      final value = parts[1];
       
       if (key == 'class') {
         surpriseClass = value;
+      } else if (key == 'factor') {
+        factor = double.parse(value);
       } else {
-        values[key] = double.parse(value);
+        final splits = value.split('|');
+        factors[key] = double.parse(splits[0]);
+        values[key] = double.parse(splits[1]);
       }
     }
+    if (surpriseClass == 'extremly surprising' || surpriseClass == 'highly surprising') {
+      print(obj);
+    }
 
-    return SurpriseMetric(values['length']!, values['alphaHelix']!, values['betaSheet']!, values['coil']!, values['freeEnergy']!, values['hydrophobicity']!, values['mutability']!, values['stability']!, values['volume']!, sequenceId, values['factor']!, surpriseClass);
+    return SurpriseMetric(sequenceId, factor, surpriseClass,
+      values['length']!, factors['length']!,
+      values['alphaHelix']!, factors['alphaHelix']!,
+      values['betaSheet']!, factors['betaSheet']!,
+      values['coil']!, factors['coil']!,
+      values['freeEnergy']!, factors['freeEnergy']!,
+      values['hydrophobicity']!, factors['hydrophobicity']!,
+      values['mutability']!, factors['mutability']!,
+      values['stability']!, factors['stability']!,
+      values['volume']!, factors['volume']!,);
   }
 }
 
@@ -58,11 +76,15 @@ class SurpriseMetricColumnWizard extends ColumnWizard {
   int getAmount(String className) => valueMap.values.where((m) => m.surpriseClass == className).length;
 
   SurpriseMetric getForSequence(String sequenceId) {
-    return valueMap[sequenceId] ?? SurpriseMetric(0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, sequenceId, 0.0, 'notFound');
+    return valueMap[sequenceId] ?? SurpriseMetric(sequenceId, 0.0, 'notFound', 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
   }
 }
 
 class SurpriseMetric {
+  final String sequenceId;
+  final double factor;
+  final String surpriseClass;
+
   final double length;
   final double alphaHelix;
   final double betaSheet;
@@ -73,9 +95,24 @@ class SurpriseMetric {
   final double stability;
   final double volume;
 
-  final String sequenceId;
-  final double factor;
-  final String surpriseClass;
+  final double lengthFactor;
+  final double alphaHelixFactor;
+  final double betaSheetFactor;
+  final double coilFactor;
+  final double freeEnergyFactor;
+  final double hydrophobicityFactor;
+  final double mutabilityFactor;
+  final double stabilityFactor;
+  final double volumeFactor;
 
-  SurpriseMetric(this.length, this.alphaHelix, this.betaSheet, this.coil, this.freeEnergy, this.hydrophobicity, this.mutability, this.stability, this.volume, this.sequenceId, this.factor, this.surpriseClass);
+  SurpriseMetric(this.sequenceId, this.factor, this.surpriseClass,
+    this.length, this.lengthFactor,
+    this.alphaHelix, this.alphaHelixFactor,
+    this.betaSheet, this.betaSheetFactor,
+    this.coil, this.coilFactor,
+    this.freeEnergy, this.freeEnergyFactor,
+    this.hydrophobicity, this.hydrophobicityFactor,
+    this.mutability, this.mutabilityFactor,
+    this.stability, this.stabilityFactor,
+    this.volume, this.volumeFactor);
 }

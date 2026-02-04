@@ -83,4 +83,27 @@ class BiocentralBackgroundData {
 
     return PointScaleStats(min, max, mean, stdDev, points);
   }
+
+  static Future<(Map<String, double>, Map<String, double>)> getReferenceStats() async {
+    final Map<String, double> means = {};
+    final Map<String, double> stdDevs = {};
+    final List<String> features = ['hydrophobicity', 'stability', 'freeEnergy', 'volume', 'alphaHelix', 'betaSheet', 'coil', 'mutability'];
+
+    String jsonData = await rootBundle.loadString(_backgroundAAPath);
+    Map<String, dynamic> rawData = (json.decode(jsonData) as Map<String, dynamic>)['lengthStats'];
+
+    means['length'] = rawData['mean']! as double;
+    stdDevs['length'] = rawData['stdDev']! as double;
+
+    for (String feature in features) {
+      jsonData = await rootBundle.loadString('assets/background_dist/distribution_scales_$feature.json');
+      rawData = json.decode(jsonData) as Map<String, dynamic>;
+
+      final Map<String, dynamic> stats = Map<String, dynamic>.from(rawData['stats']);
+      means[feature] = stats['mean'] as double;
+      stdDevs[feature] = stats['stdDev'] as double;
+    }
+
+    return (means, stdDevs);
+  }
 }

@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:biocentral/plugins/proteins/model/sequence_column_wizard.dart';
+import 'package:biocentral/sdk/data/biocentral_background_data.dart';
 import 'package:biocentral/sdk/model/column_wizard_abstract.dart';
 import 'package:flutter/material.dart';
 
@@ -150,48 +151,118 @@ class ColumnWizardCalculateLengthOperation extends ColumnWizardOperation<ColumnW
   }
 }
 
+enum ColumnWizardSurpriseMetricMethod {
+  relative, absolut
+}
+
 class ColumnWizardcalculateSupriseFactorOperation extends ColumnWizardOperation<ColumnWizardAddOperationResult> {
-  ColumnWizardcalculateSupriseFactorOperation(super.newColumnName);
+  final ColumnWizardSurpriseMetricMethod method;
+
+  ColumnWizardcalculateSupriseFactorOperation(super.newColumnName, this.method);
 
   @override
   Future<ColumnWizardAddOperationResult> operate(ColumnWizard columnWizard) async {
-    if (columnWizard is! SequenceNormalColumnWizard) return ColumnWizardAddOperationResult(newColumnNames, columnWizard.valueMap);
+    switch (method) {
+      case ColumnWizardSurpriseMetricMethod.relative:
+      {
+        if (columnWizard is! SequenceNormalColumnWizard) return ColumnWizardAddOperationResult(newColumnNames, columnWizard.valueMap);
 
-    final SequenceStats data = (columnWizard).getSequenceStats();
-    final Map<String, double> means = data.means;
-    final Map<String, double> stdDevs = data.stdDevs;
-    
-    final Map<String, String> surpriseFactor = {};
-    for (SequenceValues values in data.values) {
-      final double length = (means['length']! - values.length).abs() / stdDevs['length']!;
-      final double hydrophobicity = (means['hydrophobicity']! - values.hydrophobicity).abs() / stdDevs['hydrophobicity']!;
-      final double stability = (means['stability']! - values.stability).abs() / stdDevs['stability']!;
-      final double freeEnergy = (means['freeEnergy']! - values.freeEnergy).abs() / stdDevs['freeEnergy']!;
-      final double volume = (means['volume']! - values.volume).abs() / stdDevs['volume']!;
-      final double alphaHelix = (means['alphaHelix']! - values.alphaHelix).abs() / stdDevs['alphaHelix']!;
-      final double betaSheet = (means['betaSheet']! - values.betaSheet).abs() / stdDevs['betaSheet']!;
-      final double coil = (means['coil']! - values.coil).abs() / stdDevs['coil']!;
-      final double mutability = (means['mutability']! - values.mutability).abs() / stdDevs['mutability']!;
+        final SequenceStats data = (columnWizard).getSequenceStats();
+        final Map<String, double> means = data.means;
+        final Map<String, double> stdDevs = data.stdDevs;
+        
+        final Map<String, String> surpriseFactor = {};
+        for (SequenceValues values in data.values) {
+          final double length = (means['length']! - values.length).abs() / stdDevs['length']!;
+          final double hydrophobicity = (means['hydrophobicity']! - values.hydrophobicity).abs() / stdDevs['hydrophobicity']!;
+          final double stability = (means['stability']! - values.stability).abs() / stdDevs['stability']!;
+          final double freeEnergy = (means['freeEnergy']! - values.freeEnergy).abs() / stdDevs['freeEnergy']!;
+          final double volume = (means['volume']! - values.volume).abs() / stdDevs['volume']!;
+          final double alphaHelix = (means['alphaHelix']! - values.alphaHelix).abs() / stdDevs['alphaHelix']!;
+          final double betaSheet = (means['betaSheet']! - values.betaSheet).abs() / stdDevs['betaSheet']!;
+          final double coil = (means['coil']! - values.coil).abs() / stdDevs['coil']!;
+          final double mutability = (means['mutability']! - values.mutability).abs() / stdDevs['mutability']!;
 
-      final double factor = (length
-        + hydrophobicity
-        + stability
-        + freeEnergy
-        + volume
-        + alphaHelix
-        + betaSheet
-        + coil
-        + mutability) / 9;
-      
-      final String surpriseClass = factor >= 5.0 ? 'extremly surprising' :
-          factor >= 4 ? 'highly surprising' :
-          factor >= 3 ? 'surprising' :
-          factor >= 2.5 ? 'slightly surprising' : 'ordinary';
+          final double factor = (length
+            + hydrophobicity
+            + stability
+            + freeEnergy
+            + volume
+            + alphaHelix
+            + betaSheet
+            + coil
+            + mutability) / 9;
+          
+          final String surpriseClass = factor >= 5.0 ? 'extremly surprising' :
+              factor >= 4 ? 'highly surprising' :
+              factor >= 3 ? 'surprising' :
+              factor >= 2.5 ? 'slightly surprising' : 'ordinary';
 
-        surpriseFactor[values.sequence] = 'SurpriseMetric(class:${surpriseClass},factor:${factor},length:${length},hydrophobicity:${hydrophobicity},stability:${stability},freeEnergy:${freeEnergy},volume:${volume},alphaHelix:${alphaHelix},betaSheet:${betaSheet},coil:${coil},mutability:${mutability})';
+            surpriseFactor[values.sequence] = 'SurpriseMetric(class:$surpriseClass,factor:$factor,'
+              'alphaHelix:${alphaHelix}|${values.alphaHelix},'
+              'betaSheet:${betaSheet}|${values.betaSheet},'
+              'coil:${coil}|${values.coil},'
+              'freeEnergy:${freeEnergy}|${values.freeEnergy},'
+              'hydrophobicity:$hydrophobicity|${values.hydrophobicity},'
+              'length:$length|${values.length},'
+              'mutability:${mutability}|${values.mutability},'
+              'stability:${stability}|${values.stability},'
+              'volume:${volume}|${values.volume})';
+        }
+
+        return ColumnWizardAddOperationResult(newColumnNames, surpriseFactor);
+      }
+      case ColumnWizardSurpriseMetricMethod.absolut:
+      {
+        if (columnWizard is! SequenceNormalColumnWizard) return ColumnWizardAddOperationResult(newColumnNames, columnWizard.valueMap);
+
+        final SequenceStats data = (columnWizard).getSequenceStats();
+        final (Map<String, double>, Map<String, double>) referenceData = await BiocentralBackgroundData.getReferenceStats();
+        final Map<String, double> means = referenceData.$1;
+        final Map<String, double> stdDevs = referenceData.$2;
+        
+        final Map<String, String> surpriseFactor = {};
+        for (SequenceValues values in data.values) {
+          final double length = (means['length']! - values.length).abs() / stdDevs['length']!;
+          final double hydrophobicity = (means['hydrophobicity']! - values.hydrophobicity).abs() / stdDevs['hydrophobicity']!;
+          final double stability = (means['stability']! - values.stability).abs() / stdDevs['stability']!;
+          final double freeEnergy = (means['freeEnergy']! - values.freeEnergy).abs() / stdDevs['freeEnergy']!;
+          final double volume = (means['volume']! - values.volume).abs() / stdDevs['volume']!;
+          final double alphaHelix = (means['alphaHelix']! - values.alphaHelix).abs() / stdDevs['alphaHelix']!;
+          final double betaSheet = (means['betaSheet']! - values.betaSheet).abs() / stdDevs['betaSheet']!;
+          final double coil = (means['coil']! - values.coil).abs() / stdDevs['coil']!;
+          final double mutability = (means['mutability']! - values.mutability).abs() / stdDevs['mutability']!;
+
+          final double factor = (length
+            + hydrophobicity
+            + stability
+            + freeEnergy
+            + volume
+            + alphaHelix
+            + betaSheet
+            + coil
+            + mutability) / 9;
+          
+          final String surpriseClass = factor >= 5.0 ? 'extremly surprising' :
+              factor >= 4 ? 'highly surprising' :
+              factor >= 3 ? 'surprising' :
+              factor >= 2.5 ? 'slightly surprising' : 'ordinary';
+
+            surpriseFactor[values.sequence] = 'SurpriseMetric(class:$surpriseClass,factor:$factor,'
+              'alphaHelix:${alphaHelix}|${values.alphaHelix},'
+              'betaSheet:${betaSheet}|${values.betaSheet},'
+              'coil:${coil}|${values.coil},'
+              'freeEnergy:${freeEnergy}|${values.freeEnergy},'
+              'hydrophobicity:$hydrophobicity|${values.hydrophobicity},'
+              'length:$length|${values.length},'
+              'mutability:${mutability}|${values.mutability},'
+              'stability:${stability}|${values.stability},'
+              'volume:${volume}|${values.volume})';
+        }
+
+        return ColumnWizardAddOperationResult(newColumnNames, surpriseFactor);
+      }
     }
-
-    return ColumnWizardAddOperationResult(newColumnNames, surpriseFactor);
   }
 }
 

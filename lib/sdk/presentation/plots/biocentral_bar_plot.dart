@@ -168,7 +168,7 @@ class _BarPlotPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    const double padding = 30;
+    const double padding = 60;
     final Size plotSize = Size(size.width - padding * 2, size.height - padding * 2);
     final Offset plotOffset = const Offset(padding, padding);
 

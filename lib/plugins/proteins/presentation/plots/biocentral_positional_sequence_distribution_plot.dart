@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:biocentral/sdk/data/biocentral_background_data.dart';
 import 'package:flutter/material.dart';
 
@@ -217,6 +219,25 @@ class _PositionalDistributionPainter extends CustomPainter {
         tp.paint(canvas, Offset(groupX + groupWidth / 2 - tp.width / 2, plotOffset.dy + plotSize.height + 5));
       }
     }
+    
+    // Labels
+    final xLabelPainter = TextPainter(
+      text: TextSpan(text: 'Position', style: plotTextStyle),
+      textDirection: TextDirection.ltr,
+    );
+    xLabelPainter.layout();
+    xLabelPainter.paint(canvas, Offset(size.width / 2, size.height - xLabelPainter.height - 20));
+
+    final yLabelPainter = TextPainter(
+      text: TextSpan(text: 'Percentage', style: plotTextStyle),
+      textDirection: TextDirection.ltr,
+    );
+    yLabelPainter.layout();
+    canvas.save();
+    canvas.translate(0, size.height / 2 + yLabelPainter.width / 2);
+    canvas.rotate(-math.pi / 2);
+    yLabelPainter.paint(canvas, Offset(0, plotOffset.dx / 4 - 10));
+    canvas.restore();
 
     drawLegend(canvas, size);
   }

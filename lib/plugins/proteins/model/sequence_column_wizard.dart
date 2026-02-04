@@ -213,8 +213,19 @@ class DistributionStats {
       y /= lenDistribution.length * bandwidth * math.sqrt(2 * math.pi);
       lenKdePoints.add(Point(x, y));
     }
-    final double sumKDE = lenKdePoints.fold(0.0, (sum, point) => sum + point.y) * (range / 200);
-    lenKdePoints = [for (Point point in lenKdePoints) Point(point.x, point.y / sumKDE)];
+
+    double area = 0.0;
+    for (int i = 0; i < lenKdePoints.length - 1; i++) {
+      final p1 = lenKdePoints[i];
+      final p2 = lenKdePoints[i + 1];
+
+      final double dx = p2.x - p1.x;
+      final double avgY = (p1.y + p2.y) / 2.0;
+
+      area += dx * avgY;
+    }
+
+    if (area > 0) lenKdePoints = [for (final p in lenKdePoints) Point(p.x, p.y / area)];
 
     return lenKdePoints;
   }
@@ -318,8 +329,19 @@ class ScaleStats {
       y /= valuesPerSequence.length * bandwidth * math.sqrt(2 * math.pi);
       kdePoints.add(Point(x, y));
     }
-    final double sumKDE = kdePoints.fold(0.0, (sum, point) => sum + point.y) * (range / 200);
-    kdePoints = [for (Point point in kdePoints) Point(point.x, point.y / sumKDE)];
+
+    double area = 0.0;
+    for (int i = 0; i < kdePoints.length - 1; i++) {
+      final p1 = kdePoints[i];
+      final p2 = kdePoints[i + 1];
+
+      final double dx = p2.x - p1.x;
+      final double avgY = (p1.y + p2.y) / 2.0;
+
+      area += dx * avgY;
+    }
+
+    if (area > 0) kdePoints = [for (final p in kdePoints) Point(p.x, p.y / area)];
 
     return PointScaleStats(min, max, mean, stdDev, kdePoints);
   }

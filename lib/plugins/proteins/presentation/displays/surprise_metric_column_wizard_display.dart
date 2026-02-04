@@ -1,5 +1,6 @@
 import 'package:biocentral/plugins/proteins/model/surprise_metric_column_wizard.dart';
 import 'package:biocentral/sdk/biocentral_sdk.dart';
+import 'package:biocentral/sdk/presentation/plots/biocentral_bar_plot.dart';
 import 'package:flutter/material.dart';
 
 class SurpriseMetricColumnWizardDisplay extends StatefulWidget {
@@ -23,6 +24,15 @@ class _SurpriseMetricColumnWizardDisplayState extends State<SurpriseMetricColumn
 
   @override
   Widget build(BuildContext context) {
+
+    final Map<String, int> counts = {
+      'extremly surprising': widget.columnWizard.getAmount('extremly surprising'),
+      'highly surprising': widget.columnWizard.getAmount('highly surprising'),
+      'surprising': widget.columnWizard.getAmount('surprising'),
+      'slightly surprising': widget.columnWizard.getAmount('slightly surprising'),
+      'ordinary': widget.columnWizard.getAmount('ordinary'),
+      };
+    
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -31,7 +41,7 @@ class _SurpriseMetricColumnWizardDisplayState extends State<SurpriseMetricColumn
           columnWidths: columnWidth,
           children: [
             TableRow(children: [
-              const Text('Extremly surprising:'), Text(widget.columnWizard.getAmount('extremly surprising').toString()),
+              const Text('Extremly surprising:'), Text(counts['extremly surprising'].toString()),
             ]),
             TableRow(children: [
               const Text('Highly surprising:'), Text(widget.columnWizard.getAmount('highly surprising').toString()),
@@ -47,6 +57,7 @@ class _SurpriseMetricColumnWizardDisplayState extends State<SurpriseMetricColumn
             ]),
           ],
         ),
+        buildBarPlot(Map.from(counts)..remove('ordinary')),
         const SizedBox(height: 16),
         const Text('Protein selection'),
         Row(children: [
@@ -112,36 +123,47 @@ class _SurpriseMetricColumnWizardDisplayState extends State<SurpriseMetricColumn
         Table(
           columnWidths: columnWidth,
           children: [
-            TableRow(children: [
-              const Text('Length factor:'), Text(surpriseMetric.length.toStringAsFixed(3)),
+            const TableRow(children: [
+              Text('Feature'), Text('Factor'), Text('value'),
             ]),
             TableRow(children: [
-              const Text('Alpha helix factor:'), Text(surpriseMetric.alphaHelix.toStringAsFixed(3)),
+              const Text('Length factor:'), Text(surpriseMetric.lengthFactor.toStringAsFixed(3)), Text(surpriseMetric.length.toStringAsFixed(3)),
             ]),
             TableRow(children: [
-              const Text('Beta sheet factor:'), Text(surpriseMetric.betaSheet.toStringAsFixed(3)),
+              const Text('Alpha helix factor:'), Text(surpriseMetric.alphaHelixFactor.toStringAsFixed(3)), Text(surpriseMetric.alphaHelix.toStringAsFixed(3)),
             ]),
             TableRow(children: [
-              const Text('Coil factor:'), Text(surpriseMetric.coil.toStringAsFixed(3)),
+              const Text('Beta sheet factor:'), Text(surpriseMetric.betaSheetFactor.toStringAsFixed(3)), Text(surpriseMetric.betaSheet.toStringAsFixed(3)),
             ]),
             TableRow(children: [
-              const Text('Free energy factor:'), Text(surpriseMetric.freeEnergy.toStringAsFixed(3)),
+              const Text('Coil factor:'), Text(surpriseMetric.coilFactor.toStringAsFixed(3)), Text(surpriseMetric.coil.toStringAsFixed(3)),
             ]),
             TableRow(children: [
-              const Text('Hydrophobicity factor:'), Text(surpriseMetric.hydrophobicity.toStringAsFixed(3)),
+              const Text('Free energy factor:'), Text(surpriseMetric.freeEnergyFactor.toStringAsFixed(3)), Text(surpriseMetric.freeEnergy.toStringAsFixed(3)),
             ]),
             TableRow(children: [
-              const Text('Mutability factor:'), Text(surpriseMetric.mutability.toStringAsFixed(3)),
+              const Text('Hydrophobicity factor:'), Text(surpriseMetric.hydrophobicityFactor.toStringAsFixed(3)), Text(surpriseMetric.hydrophobicity.toStringAsFixed(3)),
             ]),
             TableRow(children: [
-              const Text('Stability factor:'), Text(surpriseMetric.stability.toStringAsFixed(3)),
+              const Text('Mutability factor:'), Text(surpriseMetric.mutabilityFactor.toStringAsFixed(3)), Text(surpriseMetric.mutability.toStringAsFixed(3)),
             ]),
             TableRow(children: [
-              const Text('Volume factor:'), Text(surpriseMetric.volume.toStringAsFixed(3)),
+              const Text('Stability factor:'), Text(surpriseMetric.stabilityFactor.toStringAsFixed(3)), Text(surpriseMetric.stability.toStringAsFixed(3)),
+            ]),
+            TableRow(children: [
+              const Text('Volume factor:'), Text(surpriseMetric.volumeFactor.toStringAsFixed(3)), Text(surpriseMetric.volume.toStringAsFixed(3)),
             ]),
           ],
         ),
       ],
+    );
+  }
+  
+  Widget buildBarPlot(Map<String, int> counts) {
+    return SizedBox(
+      width: 2000,
+      height: 500,
+      child: BiocentralBarPlot(data: BiocentralBarPlotData.withoutErrors(Map<String, double>.from(counts.map((key, value) => MapEntry(key, value.toDouble())))), maxLabelLength: 19,),
     );
   }
 }

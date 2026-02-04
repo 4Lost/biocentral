@@ -417,6 +417,8 @@ class ColumnWizardcalculateSupriseFactorOperationDisplay extends ColumnWizardOpe
 
 class ColumnWizardcalculateSupriseFactorOperationDisplayState
     extends ColumnWizardOperationDisplayState<ColumnWizardAddOperationResult> {
+  ColumnWizardSurpriseMetricMethod? _selectedMethod;
+
   @override
   String defaultColumnName() {
     return 'supriseFactor';
@@ -424,8 +426,8 @@ class ColumnWizardcalculateSupriseFactorOperationDisplayState
 
   @override
   ColumnWizardOperation? collect() {
-    if (newColumnNames.isNotEmpty) {
-      return ColumnWizardcalculateSupriseFactorOperation(newColumnNames);
+    if (_selectedMethod != null) {
+      return ColumnWizardcalculateSupriseFactorOperation(newColumnNames, _selectedMethod!);
     } else {
       return null;
     }
@@ -433,6 +435,20 @@ class ColumnWizardcalculateSupriseFactorOperationDisplayState
 
   @override
   List<Widget> buildParameterSelections() {
-    return [];
+    return [
+      Flexible(
+        child: BiocentralDropdownMenu(
+          dropdownMenuEntries: ColumnWizardSurpriseMetricMethod.values
+              .map((method) => DropdownMenuEntry(value: method, label: method.name))
+              .toList(),
+          label: const Text('Select method'),
+          onSelected: (ColumnWizardSurpriseMetricMethod? method) {
+            setState(() {
+              _selectedMethod = method;
+            });
+          },
+        ),
+      ),
+    ];
   }
 }
