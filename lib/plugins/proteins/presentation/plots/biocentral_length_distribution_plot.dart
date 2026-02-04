@@ -65,7 +65,7 @@ class _LengthDistributionPainter extends CustomPainter {
   final List<Map<String, double>> stats;
   final double bandwidth;
   final bool showSecond;
-  final TextStyle plotTextStyle = const TextStyle(color: Colors.black, fontSize: 12);
+  final TextStyle plotTextStyle = const TextStyle(color: Colors.black, fontSize: 16);
 
   _LengthDistributionPainter(this.distributions, this.stats, this.bandwidth, this.showSecond);
 
@@ -73,7 +73,7 @@ class _LengthDistributionPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     const double leftPadding = 60;
     const double topPadding = 40;
-    const double rightPadding = 150;
+    const double rightPadding = 160;
     const double bottomPadding = 60;
 
     final Offset plotOffset = const Offset(leftPadding, topPadding);
@@ -251,16 +251,16 @@ class _LengthDistributionPainter extends CustomPainter {
   }
 
   void drawLegend(Canvas canvas, Size size) {
-    final double legendX = size.width - 130;
+    final double legendX = size.width - 150;
     double legendY = 50;
     const double boxSize = 12;
     const double spacing = 6;
 
     final entries = [
-      {'label': 'Distribution', 'color': Colors.blue}, // %TODO : better names
-      {'label': 'Distribution Stats', 'color': Colors.green}, // %TODO : better names
-      if (showSecond && distributions.length == 2) {'label': 'Compare Data', 'color': Colors.pink},
-      if (showSecond && distributions.length == 2) {'label': 'Compare Data Stats', 'color': Colors.purple},
+      {'label': 'Validation', 'color': Colors.blue}, // %TODO : better names
+      {'label': 'Validation Stats', 'color': Colors.green}, // %TODO : better names
+      if (showSecond && distributions.length == 2) {'label': 'Reference', 'color': Colors.pink},
+      if (showSecond && distributions.length == 2) {'label': 'Reference Data', 'color': Colors.purple},
     ];
 
     for (final entry in entries) {

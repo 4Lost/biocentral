@@ -54,7 +54,7 @@ class _GeneralDistributionPlotState extends State<BiocentralSequenceDistribution
 class _GeneralDistributionPainter extends CustomPainter {
   final List<Map<String, double>> data;
   final bool showSecond;
-  final TextStyle plotTextStyle = const TextStyle(color: Colors.black, fontSize: 12);
+  final TextStyle plotTextStyle = const TextStyle(color: Colors.black, fontSize: 16);
 
   _GeneralDistributionPainter(this.data, this.showSecond);
 
@@ -62,7 +62,7 @@ class _GeneralDistributionPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     const double leftPadding = 60;
     const double topPadding = 40;
-    const double rightPadding = 150;
+    const double rightPadding = 160;
     const double bottomPadding = 60;
 
     final Offset plotOffset = const Offset(leftPadding, topPadding);
@@ -170,14 +170,14 @@ class _GeneralDistributionPainter extends CustomPainter {
   }
 
   void drawLegend(Canvas canvas, Size size, Offset plotOffset) {
-    final double legendX = size.width - 130;
+    final double legendX = size.width - 150;
     double legendY = 50;
     const double boxSize = 12;
     const double spacing = 6;
 
     final entries = [
-      {'label': 'Distribution', 'color': Colors.blue}, // %TODO : better names
-      if (showSecond && data.length == 2) {'label': 'Compare Data', 'color': Colors.pink},
+      {'label': 'Validation', 'color': Colors.blue}, // %TODO : better names
+      if (showSecond && data.length == 2) {'label': 'Reference', 'color': Colors.pink},
     ];
 
     for (final entry in entries) {

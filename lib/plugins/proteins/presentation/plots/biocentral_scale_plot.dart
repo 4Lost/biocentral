@@ -60,7 +60,7 @@ class _ScalePainter extends CustomPainter {
   final List<PointScaleStats> scaleStats;
   final double bandwidth;
   final bool showSecond;
-  final TextStyle plotTextStyle = const TextStyle(color: Colors.black, fontSize: 12);
+  final TextStyle plotTextStyle = const TextStyle(color: Colors.black, fontSize: 16);
 
   _ScalePainter(this.scaleStats, this.bandwidth, this.showSecond);
 
@@ -68,7 +68,7 @@ class _ScalePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     const double leftPadding = 60;
     const double topPadding = 40;
-    const double rightPadding = 150;
+    const double rightPadding = 160;
     const double bottomPadding = 60;
 
     final Offset plotOffset = const Offset(leftPadding, topPadding);
@@ -247,16 +247,16 @@ class _ScalePainter extends CustomPainter {
 
 
   void drawLegend(Canvas canvas, Size size) {
-    final double legendX = size.width - 130;
+    final double legendX = size.width - 150;
     double legendY = 50;
     const double boxSize = 12;
     const double spacing = 6;
 
     final entries = [
-      {'label': 'Scale Values', 'color': Colors.blue}, // %TODO : better names
-      {'label': 'Scale Stats', 'color': Colors.green}, // %TODO : better names
-      if (showSecond && scaleStats.length == 2) {'label': 'Compare Scale', 'color': Colors.pink},
-      if (showSecond && scaleStats.length == 2) {'label': 'Compare Scale Stats', 'color': Colors.purple},
+      {'label': 'Validation', 'color': Colors.blue}, // %TODO : better names
+      {'label': 'Validation Stats', 'color': Colors.green}, // %TODO : better names
+      if (showSecond && scaleStats.length == 2) {'label': 'Reference', 'color': Colors.pink},
+      if (showSecond && scaleStats.length == 2) {'label': 'Reference Stats', 'color': Colors.purple},
     ];
 
     for (final entry in entries) {

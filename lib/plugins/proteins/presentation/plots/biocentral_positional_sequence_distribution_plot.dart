@@ -42,28 +42,6 @@ class _PositionalDistributionPlotState extends State<BiocentralPositionalSequenc
 
     return Column(
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
-              onPressed: _startIndex > 0 ? () {
-                setState(() {
-                  _startIndex = (_startIndex - pageSize).clamp(0, nPositions);
-                });
-              } : null,
-              child: const Text('Previous'),
-            ),
-            const SizedBox(width: 20),
-            ElevatedButton(
-              onPressed: _startIndex + pageSize < nPositions ? () {
-                setState(() {
-                  _startIndex = (_startIndex + pageSize).clamp(0, nPositions);
-                });
-              } : null,
-              child: const Text('Next'),
-            ),
-          ],
-        ),
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) {
@@ -87,7 +65,7 @@ class _PositionalDistributionPlotState extends State<BiocentralPositionalSequenc
 class _PositionalDistributionPainter extends CustomPainter {
   final List<Map<int, Map<String, double>>> data;
   final bool showSecond;
-  final TextStyle plotTextStyle = const TextStyle(color: Colors.black, fontSize: 12);
+  final TextStyle plotTextStyle = const TextStyle(color: Colors.black, fontSize: 16);
   final int startIndex;
   final int pageSize;
 
@@ -120,7 +98,7 @@ class _PositionalDistributionPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     const double leftPadding = 60;
     const double topPadding = 40;
-    const double rightPadding = 150;
+    const double rightPadding = 160;
     const double bottomPadding = 60;
 
     final Offset plotOffset = const Offset(leftPadding, topPadding);
@@ -260,7 +238,7 @@ class _PositionalDistributionPainter extends CustomPainter {
   }
 
   void drawLegend(Canvas canvas, Size size) {
-    final double legendX = size.width - 140;
+    final double legendX = size.width - 150;
     double legendY = 40;
     const double boxSize = 12;
     const double spacing = 4;

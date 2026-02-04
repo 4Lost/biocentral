@@ -6,6 +6,12 @@ import 'package:biocentral/plugins/proteins/presentation/plots/biocentral_positi
 import 'package:biocentral/sdk/biocentral_sdk.dart';
 import 'package:biocentral/sdk/util/point.dart';
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:path_provider/path_provider.dart';
+import 'package:widgets_to_image/widgets_to_image.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:html' as html show Blob, AnchorElement, Url;
 
 class SequenceColumnWizardDisplay extends StatefulWidget {
   final SequenceColumnWizard columnWizard;
@@ -17,8 +23,23 @@ class SequenceColumnWizardDisplay extends StatefulWidget {
 }
 
 class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDisplay> {
-  List<bool> compareValues = [false, false, false, false, false, false, false, false, false, false, false, true];
+  List<bool> compareValues = [true, true, true, true, true, true, true, true, true, true, true, true];
   List<String> compareColumns = ['', ''];
+  List<Widget> widgets = [];
+  List<WidgetsToImageController> controllers = [];
+  List<String> widgetNames = [
+    'kde_length',
+    'bar_AA_distribution',
+    'bar_pos_AA_distribution',
+    'kde_alpha-helix',
+    'kde_beta-sheet',
+    'kde_coil',
+    'kde_freeEnergie',
+    'kde_hydrophobicity',
+    'kde_mutability',
+    'kde_stability',
+    'kde_volume',
+  ];
 
   @override
   void initState() {
@@ -36,6 +57,21 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const CircularProgressIndicator();
 
+        widgets = [
+          buildLengthCompositionPlot([snapshot.data!.lenKdePoints], [snapshot.data!.lenStats]),
+          buildCompositionPlot([snapshot.data!.seqDistribution]),
+          buildPositionalCompositionPlot([snapshot.data!.posSeqDistribution]),
+          buildScalePlot('alphaHelix', [snapshot.data!.getScaleStats('alphaHelix')], 8),
+          buildScalePlot('betaSheet', [snapshot.data!.getScaleStats('betaSheet')], 9),
+          buildScalePlot('coil', [snapshot.data!.getScaleStats('coil')], 10),
+          buildScalePlot('freeEnergie', [snapshot.data!.getScaleStats('freeEnergie')], 5),
+          buildScalePlot('hydrophobicity', [snapshot.data!.getScaleStats('hydrophobicity')], 4),
+          buildScalePlot('mutability', [snapshot.data!.getScaleStats('mutability')], 11),
+          buildScalePlot('stability', [snapshot.data!.getScaleStats('stability')], 6),
+          buildScalePlot('volume', [snapshot.data!.getScaleStats('volume')], 7),
+        ];
+        controllers.addAll(widgets.map((_) => WidgetsToImageController()));
+
         return Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -43,39 +79,131 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
             SizedBox(
               width: SizeConfig.safeBlockHorizontal(context) * 5,
             ),
-            const Text('Length Distribution\n'),
+            WidgetsToImage(
+              controller: controllers[0],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Length Distribution\n', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+                  widgets[0],
+                ],
+              ),
+            ),
             toggleCompareButton(1),
-            buildLengthCompositionPlot([snapshot.data!.lenKdePoints], [snapshot.data!.lenStats]),
-            const Text('Protein Distribution\n'),
+            WidgetsToImage(
+              controller: controllers[1],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Protein Distribution\n', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+                  widgets[1],
+                ],
+              ),
+            ),
             toggleCompareButton(2),
-            buildCompositionPlot([snapshot.data!.seqDistribution]),
-            const Text('Positional Protein Distribution\n'),
+            WidgetsToImage(
+              controller: controllers[2],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Positional Protein Distribution\n', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+                  widgets[2],
+                ],
+              ),
+            ),
             toggleCompareButton(3),
-            buildPositionalCompositionPlot([snapshot.data!.posSeqDistribution]),
-            const Text('Hydrophobicity\n'),
+            WidgetsToImage(
+              controller: controllers[3],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Alpha Helix\n', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+                  widgets[3],
+                ],
+              ),
+            ),
             toggleCompareButton(4),
-            buildScalePlot('hydrophobicity', [snapshot.data!.getScaleStats('hydrophobicity')], 4),
-            const Text('Free Energy\n'),
+            WidgetsToImage(
+              controller: controllers[4],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Beta Sheet\n', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+                  widgets[4],
+                ],
+              ),
+            ),
             toggleCompareButton(5),
-            buildScalePlot('freeEnergy', [snapshot.data!.getScaleStats('freeEnergy')], 5),
-            const Text('Stability\n'),
+            WidgetsToImage(
+              controller: controllers[5],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Coil\n', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+                  widgets[5],
+                ],
+              ),
+            ),
             toggleCompareButton(6),
-            buildScalePlot('stability', [snapshot.data!.getScaleStats('stability')], 6),
-            const Text('Volume\n'),
+            WidgetsToImage(
+              controller: controllers[6],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Free Energie\n', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+                  widgets[6],
+                ],
+              ),
+            ),
             toggleCompareButton(7),
-            buildScalePlot('volume', [snapshot.data!.getScaleStats('volume')], 7),
-            const Text('Alpha Helix\n'),
+            WidgetsToImage(
+              controller: controllers[7],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Hydrophobicity\n', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+                  widgets[7],
+                ],
+              ),
+            ),
             toggleCompareButton(8),
-            buildScalePlot('alphaHelix', [snapshot.data!.getScaleStats('alphaHelix')], 8),
-            const Text('Beta Sheet\n'),
+            WidgetsToImage(
+              controller: controllers[8],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Mutability\n', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+                  widgets[8],
+                ],
+              ),
+            ),
             toggleCompareButton(9),
-            buildScalePlot('betaSheet', [snapshot.data!.getScaleStats('betaSheet')], 9),
-            const Text('Coil\n'),
+            WidgetsToImage(
+              controller: controllers[9],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Stability\n', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+                  widgets[9],
+                ],
+              ),
+            ),
             toggleCompareButton(10),
-            buildScalePlot('coil', [snapshot.data!.getScaleStats('coil')], 10),
-            const Text('Mutability\n'),
+            WidgetsToImage(
+              controller: controllers[10],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Volume\n', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+                  widgets[10],
+                ],
+              ),
+            ),
             toggleCompareButton(11),
-            buildScalePlot('mutability', [snapshot.data!.getScaleStats('mutability')], 11),
+            FloatingActionButton(
+              onPressed: saveAllToImages,
+              child: Icon(Icons.save),
+            ),
           ],
         );
       }
@@ -92,36 +220,139 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
         compareValues = [true, true, true];
         final bool notEnoughData = snapshot.data![0].lenKdePoints.length > 1;
 
+        widgets = [
+          buildLengthCompositionPlot([snapshot.data![0].lenKdePoints, snapshot.data![1].lenKdePoints], [snapshot.data![0].lenStats, snapshot.data![1].lenStats]),
+          buildCompositionPlot([snapshot.data![0].seqDistribution, snapshot.data![1].seqDistribution]),
+          buildPositionalCompositionPlot([snapshot.data![0].posSeqDistribution, snapshot.data![1].posSeqDistribution]),
+          buildScalePlot('alphaHelix', [snapshot.data![0].getScaleStats('alphaHelix'), snapshot.data![1].getScaleStats('alphaHelix')], 12),
+          buildScalePlot('betaSheet', [snapshot.data![0].getScaleStats('betaSheet'), snapshot.data![1].getScaleStats('betaSheet')], 12),
+          buildScalePlot('coil', [snapshot.data![0].getScaleStats('coil'), snapshot.data![1].getScaleStats('coil')], 12),
+          buildScalePlot('freeEnergie', [snapshot.data![0].getScaleStats('freeEnergie'), snapshot.data![1].getScaleStats('freeEnergie')], 12),
+          buildScalePlot('hydrophobicity', [snapshot.data![0].getScaleStats('hydrophobicity'), snapshot.data![1].getScaleStats('hydrophobicity')], 12),
+          buildScalePlot('mutability', [snapshot.data![0].getScaleStats('mutability'), snapshot.data![1].getScaleStats('mutability')], 12),
+          buildScalePlot('stability', [snapshot.data![0].getScaleStats('stability'), snapshot.data![1].getScaleStats('stability')], 12),
+          buildScalePlot('volume', [snapshot.data![0].getScaleStats('volume'), snapshot.data![1].getScaleStats('volume')], 12),
+        ];
+        controllers.addAll(widgets.map((_) => WidgetsToImageController()));
+
         return Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            compareSelection((widget.columnWizard as SequenceCompareColumnWizard).getKeys()),
             buildCompareSequenceStats(compareColumns[0], compareColumns[1]),
-            SizedBox(
-              width: SizeConfig.safeBlockHorizontal(context) * 5,
+            WidgetsToImage(
+              controller: controllers[0],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Length Distribution\n'),
+                  widgets[0],
+                ],
+              ),
             ),
-            if (notEnoughData) const Text('Length Distribution\n'),
-            if (notEnoughData) buildLengthCompositionPlot([snapshot.data![0].lenKdePoints, snapshot.data![1].lenKdePoints], [snapshot.data![0].lenStats, snapshot.data![1].lenStats]),
-            const Text('Protein Distribution\n'),
-            buildCompositionPlot([snapshot.data![0].seqDistribution, snapshot.data![1].seqDistribution]),
-            const Text('Positional Protein Distribution\n'),
-            buildPositionalCompositionPlot([snapshot.data![0].posSeqDistribution, snapshot.data![1].posSeqDistribution]),
-            const Text('Hydrophobicity\n'),
-            buildScalePlot('hydrophobicity', [snapshot.data![0].getScaleStats('hydrophobicity'), snapshot.data![1].getScaleStats('hydrophobicity')], 12),
-            const Text('Free Energy\n'),
-            buildScalePlot('freeEnergy', [snapshot.data![0].getScaleStats('freeEnergy'), snapshot.data![1].getScaleStats('freeEnergy')], 12),
-            const Text('Stability\n'),
-            buildScalePlot('stability', [snapshot.data![0].getScaleStats('stability'), snapshot.data![1].getScaleStats('stability')], 12),
-            const Text('Volume\n'),
-            buildScalePlot('volume', [snapshot.data![0].getScaleStats('volume'), snapshot.data![1].getScaleStats('volume')], 12),
-            const Text('Alpha Helix\n'),
-            buildScalePlot('alphaHelix', [snapshot.data![0].getScaleStats('alphaHelix'), snapshot.data![1].getScaleStats('alphaHelix')], 12),
-            const Text('Beta Sheet\n'),
-            buildScalePlot('betaSheet', [snapshot.data![0].getScaleStats('betaSheet'), snapshot.data![1].getScaleStats('betaSheet')], 12),
-            const Text('Coil\n'),
-            buildScalePlot('coil', [snapshot.data![0].getScaleStats('coil'), snapshot.data![1].getScaleStats('coil')], 12),
-            const Text('Mutability\n'),
-            buildScalePlot('mutability', [snapshot.data![0].getScaleStats('mutability'), snapshot.data![1].getScaleStats('mutability')], 12),
+            WidgetsToImage(
+              controller: controllers[1],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Protein Distribution\n'),
+                  widgets[1],
+                ],
+              ),
+            ),
+            WidgetsToImage(
+              controller: controllers[2],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Positional Protein Distribution\n'),
+                  widgets[2],
+                ],
+              ),
+            ),
+            WidgetsToImage(
+              controller: controllers[3],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Alpha Helix\n'),
+                  widgets[3],
+                ],
+              ),
+            ),
+            WidgetsToImage(
+              controller: controllers[4],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Beta Sheet\n'),
+                  widgets[4],
+                ],
+              ),
+            ),
+            WidgetsToImage(
+              controller: controllers[5],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Coil\n'),
+                  widgets[5],
+                ],
+              ),
+            ),
+            WidgetsToImage(
+              controller: controllers[6],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Free Energie\n'),
+                  widgets[6],
+                ],
+              ),
+            ),
+            WidgetsToImage(
+              controller: controllers[7],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Hydrophobicity\n'),
+                  widgets[7],
+                ],
+              ),
+            ),
+            WidgetsToImage(
+              controller: controllers[8],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Mutability\n'),
+                  widgets[8],
+                ],
+              ),
+            ),
+            WidgetsToImage(
+              controller: controllers[9],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Stability\n'),
+                  widgets[9],
+                ],
+              ),
+            ),
+            WidgetsToImage(
+              controller: controllers[10],
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Volume\n'),
+                  widgets[10],
+                ],
+              ),
+            ),
+            FloatingActionButton(
+              onPressed: saveAllToImages,
+              child: Icon(Icons.save),
+            ),
           ],
         );
       }
@@ -357,7 +588,7 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
     return SizedBox(
       key: Key('1-${compareColumns[0]}-${compareColumns[1]}'),
       width: 2000,
-      height: 500,
+      height: 800,
       child: BiocentralLengthDistributionPlot(distributions: lenDist, stats: lenStats, showSecond: compareValues[0],),
     );
   }
@@ -366,7 +597,7 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
     return SizedBox(
       key: Key('2-${compareColumns[0]}-${compareColumns[1]}'),
       width: 2000,
-      height: 500,
+      height: 800,
       child: BiocentralSequenceDistributionPlot(distributions: data, showSecond: compareValues[1],),
     );
   }
@@ -375,7 +606,7 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
     return SizedBox(
       key: Key('3-${compareColumns[0]}-${compareColumns[1]}'),
       width: 2000,
-      height: 500,
+      height: 800,
       child: BiocentralPositionalSequenceDistributionPlot(distributions: data, showSecond: compareValues[2],),
     );
   }
@@ -384,8 +615,31 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
     return SizedBox(
       key: Key('4-$feature-${compareColumns[0]}-${compareColumns[1]}'),
       width: 2000,
-      height: 500,
+      height: 800,
       child: BiocentralScalePlot(scaleStats: data, showSecond: compareValues[compareIndex - 1], feature: feature,),
     );
+  }
+
+  Future<void> saveAllToImages() async {
+    for (int i = 0; i < controllers.length; i++) {
+      try {
+        final Uint8List? bytes = await controllers[i].capturePng(pixelRatio: 2.0);
+        if (bytes != null) {
+          if (kIsWeb) {
+          final blob = html.Blob([bytes]);
+          final url = html.Url.createObjectUrlFromBlob(blob);
+          html.AnchorElement(href: url)
+            ..setAttribute('download', '${widgetNames[i]}.png')
+            ..click();
+          html.Url.revokeObjectUrl(url);
+        } else {
+          final file = File('${widgetNames[i]}.png');
+          await file.writeAsBytes(bytes);
+        }
+        }
+      } catch (e) {
+        print('Failed to capture widget $i: $e');
+      }
+    }
   }
 }
