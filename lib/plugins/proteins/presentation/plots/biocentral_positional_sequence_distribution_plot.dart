@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-
 import 'package:biocentral/sdk/data/biocentral_background_data.dart';
 import 'package:flutter/material.dart';
 
