@@ -150,7 +150,7 @@ class _SequenceColumnWizardDisplayState extends State<SequenceColumnWizardDispla
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text('Free Energie\n', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+                  const Text('Free Energy\n', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
                   widgets[6],
                 ],
               ),
