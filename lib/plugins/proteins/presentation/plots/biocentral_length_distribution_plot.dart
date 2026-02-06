@@ -221,8 +221,8 @@ class _LengthDistributionPainter extends CustomPainter {
     // Draw standard deviation range
     final double clampedLeftValue = math.max(minValue, mean - stdDev);
     final double clampedRightValue = math.min(maxValue, mean + stdDev);
-    final double leftStdDevX = plotOffset.dx + (clampedLeftValue - minValue) / (maxValue - minValue) * plotSize.width;
-    final double rightStdDevX = plotOffset.dx + (clampedRightValue - minValue) / (maxValue - minValue) * plotSize.width;
+    final double leftStdDevX = plotOffset.dx + (clampedLeftValue - minValue) / (maxValue - minValue) * (plotSize.width - plotOffset.dx);
+    final double rightStdDevX = plotOffset.dx + (clampedRightValue - minValue) / (maxValue - minValue) * (plotSize.width - plotOffset.dx);
 
     canvas.drawLine(Offset(leftStdDevX, plotOffset.dy + plotSize.height),
         Offset(rightStdDevX, plotOffset.dy + plotSize.height), meanPaint,);
