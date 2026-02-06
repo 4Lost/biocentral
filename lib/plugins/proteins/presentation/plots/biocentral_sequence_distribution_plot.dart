@@ -54,7 +54,7 @@ class _GeneralDistributionPlotState extends State<BiocentralSequenceDistribution
 class _GeneralDistributionPainter extends CustomPainter {
   final List<Map<String, double>> data;
   final bool showSecond;
-  final TextStyle plotTextStyle = const TextStyle(color: Colors.black, fontSize: 16);
+  final TextStyle plotTextStyle = const TextStyle(color: Colors.black, fontSize: 12);
 
   _GeneralDistributionPainter(this.data, this.showSecond);
 
@@ -62,7 +62,7 @@ class _GeneralDistributionPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     const double leftPadding = 60;
     const double topPadding = 40;
-    const double rightPadding = 160;
+    const double rightPadding = 150;
     const double bottomPadding = 60;
 
     final Offset plotOffset = const Offset(leftPadding, topPadding);
@@ -95,10 +95,18 @@ class _GeneralDistributionPainter extends CustomPainter {
     );
 
     // Y-axis ticks (0–100%)
+    double maxValue = 0;
+    for (var dist in data) {
+      final double total = dist.values.fold(0.0, (a, b) => a + b);
+      for (var val in dist.values) {
+        final double percent = (val / total) * 100;
+        if (percent > maxValue) maxValue = percent;
+      }
+    }
     const int yTicks = 5;
     for (int i = 0; i <= yTicks; i++) {
-      final double percent = i * 100 / yTicks;
-      final double y = plotOffset.dy + plotSize.height * (1 - percent / 100);
+      final double value = i * maxValue / yTicks;
+      final double y = plotOffset.dy + plotSize.height * (1 - value / maxValue);
       canvas.drawLine(
         Offset(plotOffset.dx - 5, y),
         Offset(plotOffset.dx, y),
@@ -106,7 +114,7 @@ class _GeneralDistributionPainter extends CustomPainter {
       );
 
       final tp = TextPainter(
-        text: TextSpan(text: '${percent.toInt()}%', style: plotTextStyle),
+        text: TextSpan(text: '${value.toInt()}%', style: plotTextStyle),
         textDirection: TextDirection.ltr,
       );
       tp.layout();
@@ -136,14 +144,14 @@ class _GeneralDistributionPainter extends CustomPainter {
 
       if (normData.containsKey(aa)) {
         _drawBar(canvas, groupX, plotOffset.dy + plotSize.height, barWidth,
-            plotSize.height, normData[aa]!, Colors.blue);
+            plotSize.height, normData[aa]!, Colors.blue, maxValue);
       }
 
       if (normSecond != null &&
           normSecond.containsKey(aa)) {
         final double barX = groupX + barWidth;
         _drawBar(canvas, barX, plotOffset.dy + plotSize.height, barWidth,
-            plotSize.height, normSecond[aa]!, Colors.pink);
+            plotSize.height, normSecond[aa]!, Colors.pink, maxValue);
       }
 
       // X-axis label
@@ -162,22 +170,22 @@ class _GeneralDistributionPainter extends CustomPainter {
   }
 
   void _drawBar(Canvas canvas, double barX, double yBottom, double barWidth,
-      double totalHeight, double perc, Color color) {
-    final double h = perc / 100 * totalHeight;
+      double totalHeight, double perc, Color color, double maxValue, ) {
+    final double h = perc / maxValue * totalHeight;
     final rect = Rect.fromLTWH(barX, yBottom - h, barWidth, h);
     final paint = Paint()..color = color;
     canvas.drawRect(rect, paint);
   }
 
   void drawLegend(Canvas canvas, Size size, Offset plotOffset) {
-    final double legendX = size.width - 150;
+    final double legendX = size.width - 130;
     double legendY = 50;
     const double boxSize = 12;
     const double spacing = 6;
 
     final entries = [
-      {'label': 'Validation', 'color': Colors.blue}, // %TODO : better names
-      if (showSecond && data.length == 2) {'label': 'Reference', 'color': Colors.pink},
+      {'label': 'Distribution', 'color': Colors.blue}, // %TODO : better names
+      if (showSecond && data.length == 2) {'label': 'Compare Data', 'color': Colors.pink},
     ];
 
     for (final entry in entries) {
