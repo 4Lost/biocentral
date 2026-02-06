@@ -227,6 +227,12 @@ class _LengthDistributionPainter extends CustomPainter {
     canvas.drawLine(Offset(leftStdDevX, plotOffset.dy + plotSize.height),
         Offset(rightStdDevX, plotOffset.dy + plotSize.height), meanPaint,);
 
+    canvas.drawLine(Offset(leftStdDevX, plotOffset.dy + plotSize.height - 2),
+        Offset(leftStdDevX, plotOffset.dy + plotSize.height + 2), meanPaint,);
+
+    canvas.drawLine(Offset(rightStdDevX, plotOffset.dy + plotSize.height - 2),
+        Offset(rightStdDevX, plotOffset.dy + plotSize.height + 2), meanPaint,);
+
     // Add labels
     final TextPainter meanPainter = TextPainter(
       text: TextSpan(text: 'Mean', style: plotTextStyle.copyWith(color: meanPaint.color)),
