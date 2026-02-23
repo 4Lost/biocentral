@@ -65,15 +65,15 @@ class _LengthDistributionPainter extends CustomPainter {
   final List<Map<String, double>> stats;
   final double bandwidth;
   final bool showSecond;
-  final TextStyle plotTextStyle = const TextStyle(color: Colors.black, fontSize: 16);
+  final TextStyle plotTextStyle = const TextStyle(color: Colors.black, fontSize: 20);
 
   _LengthDistributionPainter(this.distributions, this.stats, this.bandwidth, this.showSecond);
 
   @override
   void paint(Canvas canvas, Size size) {
-    const double leftPadding = 60;
+    const double leftPadding = 90;
     const double topPadding = 40;
-    const double rightPadding = 160;
+    const double rightPadding = 180;
     const double bottomPadding = 60;
 
     final Offset plotOffset = const Offset(leftPadding, topPadding);
@@ -107,7 +107,7 @@ class _LengthDistributionPainter extends CustomPainter {
     final Paint axesPaint = Paint()
       ..color = Colors.black
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
+      ..strokeWidth = 2;
 
     canvas.drawLine(
         Offset(plotOffset.dx, plotOffset.dy + plotSize.height),
@@ -251,7 +251,7 @@ class _LengthDistributionPainter extends CustomPainter {
   }
 
   void drawLegend(Canvas canvas, Size size) {
-    final double legendX = size.width - 150;
+    final double legendX = size.width - 170;
     double legendY = 50;
     const double boxSize = 12;
     const double spacing = 6;

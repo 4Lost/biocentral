@@ -65,7 +65,7 @@ class _PositionalDistributionPlotState extends State<BiocentralPositionalSequenc
 class _PositionalDistributionPainter extends CustomPainter {
   final List<Map<int, Map<String, double>>> data;
   final bool showSecond;
-  final TextStyle plotTextStyle = const TextStyle(color: Colors.black, fontSize: 16);
+  final TextStyle plotTextStyle = const TextStyle(color: Colors.black, fontSize: 20);
   final int startIndex;
   final int pageSize;
 
@@ -117,7 +117,7 @@ class _PositionalDistributionPainter extends CustomPainter {
     final Paint borderPaint = Paint()
       ..color = Colors.black
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
+      ..strokeWidth = 2;
 
     // Axes
     canvas.drawLine(
@@ -241,7 +241,7 @@ class _PositionalDistributionPainter extends CustomPainter {
     final double legendX = size.width - 150;
     double legendY = 40;
     const double boxSize = 12;
-    const double spacing = 4;
+    const double spacing = 6;
 
     final sortedKeys = aminoColors.keys.toList()..sort();
     for (final aa in sortedKeys) {
